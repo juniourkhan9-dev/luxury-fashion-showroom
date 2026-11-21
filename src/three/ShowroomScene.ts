@@ -231,9 +231,9 @@ export class ShowroomScene {
       alpha: false,
     });
     this.renderer.setSize(container.clientWidth, container.clientHeight);
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.25));
     this.renderer.shadowMap.enabled = true;
-    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    this.renderer.shadowMap.type = THREE.PCFShadowMap;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 1.48;
 
@@ -272,8 +272,8 @@ export class ShowroomScene {
     this.dirLight = new THREE.DirectionalLight(0xfffaee, 2.15);
     this.dirLight.position.set(0, 6.0, 5.5);
     this.dirLight.castShadow = true;
-    this.dirLight.shadow.mapSize.width = 2048;
-    this.dirLight.shadow.mapSize.height = 2048;
+    this.dirLight.shadow.mapSize.width = 1024;
+    this.dirLight.shadow.mapSize.height = 1024;
     this.dirLight.shadow.camera.near = 0.5;
     this.dirLight.shadow.camera.far = 25;
     this.dirLight.shadow.camera.left = -8;
@@ -391,15 +391,7 @@ export class ShowroomScene {
         ringGroup.add(canopyMesh);
       }
 
-      // D. Physical PointLight only on key chandeliers (prevents GPU shader lag)
-      if (cfg.hasLight && cfg.lightIntensity && cfg.distance) {
-        const pLight = new THREE.PointLight(cfg.lightColor, cfg.lightIntensity, cfg.distance, 1.4);
-        pLight.position.set(0, -0.05, 0);
-        pLight.userData.baseIntensity = cfg.lightIntensity;
-        ringGroup.add(pLight);
-        this.ringPointLights.push(pLight);
-      }
-
+      // Emissive LED band provides the full architectural chandelier glow with zero GPU light loops!
       this.scene.add(ringGroup);
     });
 
@@ -1458,32 +1450,26 @@ export class ShowroomScene {
       cupboardGroup.add(vDivider);
     });
 
-    // Warm ceiling spotlight directed at the entire rack (balanced intensity so textures stay crisp & clear)
+    // Warm ceiling spotlight directed at the entire rack
     const cupboardSpot = new THREE.SpotLight(0xfffaec, 1.45, 10, Math.PI / 3.6, 0.5);
     cupboardSpot.position.set(5.0, 4.2, 5.0);
     cupboardSpot.target.position.set(6.75, 1.25, 5.0);
-    cupboardSpot.castShadow = true;
-    cupboardSpot.shadow.bias = -0.001;
     this.scene.add(cupboardSpot);
     this.scene.add(cupboardSpot.target);
     this.shelfSpotlights.push(cupboardSpot);
 
-    // 4. In each of the 9 cubbies: Recessed ceiling LED panel & soft warm downlight
+    // 4. In each of the 9 cubbies: Recessed ceiling LED panel
+    const panelGeom = new THREE.BoxGeometry(0.72, 0.015, 0.22);
+    const panelMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
     for (let r = 0; r < 3; r++) {
       const cubbyCeilingY = r === 0 ? shelf1_plankY - thickness / 2 : r === 1 ? shelf2_plankY - thickness / 2 : topCeilingY;
       for (let c = -1; c <= 1; c++) {
         const colX = c * (colWidth + thickness);
 
         // Recessed rectangular white LED light panel matching reference image
-        const panelGeom = new THREE.BoxGeometry(0.72, 0.015, 0.22);
-        const panelMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
         const panel = new THREE.Mesh(panelGeom, panelMat);
         panel.position.set(colX, cubbyCeilingY - 0.008, 0.05);
         cupboardGroup.add(panel);
-
-        const cubbyLight = new THREE.PointLight(0xfff6ea, 0.50, 2.0, 1.2);
-        cubbyLight.position.set(colX, cubbyCeilingY - 0.05, 0.12);
-        cupboardGroup.add(cubbyLight);
       }
     }
 
@@ -2322,9 +2308,10 @@ export class ShowroomScene {
     deskGroup.add(rimMesh);
 
     // Warm under-counter floor glow LED strip
-    const underLight = new THREE.PointLight(0xffb048, 1.4, 4.0, 1.8);
-    underLight.position.set(0, 0.08, -deskD / 2 - 0.1);
-    deskGroup.add(underLight);
+    const underGlowMat = new THREE.MeshBasicMaterial({ color: 0xffb048, transparent: true, opacity: 0.65 });
+    const underGlowMesh = new THREE.Mesh(new THREE.BoxGeometry(deskW * 0.9, 0.02, 0.05), underGlowMat);
+    underGlowMesh.position.set(0, 0.02, -deskD / 2 - 0.02);
+    deskGroup.add(underGlowMesh);
 
     // 2. Desk Accessories (On Top of Marble Slab)
     const topY = deskH + 0.055;
@@ -2423,13 +2410,9 @@ export class ShowroomScene {
       emissiveIntensity: 2.2,
       roughness: 0.2,
     });
-    const shade = new THREE.Mesh(new THREE.SphereGeometry(0.08, 20, 20), shadeMat);
+    const shade = new THREE.Mesh(new THREE.SphereGeometry(0.08, 16, 16), shadeMat);
     shade.position.y = 0.34;
     lampGroup.add(shade);
-
-    const deskSpot = new THREE.PointLight(0xffb74d, 1.5, 3.5, 1.6);
-    deskSpot.position.set(0, 0.34, 0);
-    lampGroup.add(deskSpot);
     deskGroup.add(lampGroup);
 
     // D. Small Architectural Ceramic Vase with Dried Botanical Twigs
@@ -3035,34 +3018,46 @@ export class ShowroomScene {
     gateLightStrip.position.set(0, doorHeight - 0.02, 0.02);
     gateGroup.add(gateLightStrip);
 
-    // 3. Realistic Illuminated Atrium Garden Backdrop Behind the Glass Gate
+    // 3. Radiant Sunlit Outdoor Sky & Sun Corona Backdrop Behind Glass Gate
     const backdropCanvas = document.createElement('canvas');
     backdropCanvas.width = 1024;
     backdropCanvas.height = 1024;
     const bCtx = backdropCanvas.getContext('2d')!;
 
+    // Brilliant golden morning sun sky gradient
     const bGrad = bCtx.createLinearGradient(0, 0, 0, 1024);
-    bGrad.addColorStop(0, '#3a4456');
-    bGrad.addColorStop(0.35, '#56647c');
-    bGrad.addColorStop(0.70, '#2e3746');
-    bGrad.addColorStop(1, '#1a1f29');
+    bGrad.addColorStop(0, '#5ea5e6');
+    bGrad.addColorStop(0.20, '#90c6f6');
+    bGrad.addColorStop(0.48, '#ffe7af');
+    bGrad.addColorStop(0.75, '#fff6dd');
+    bGrad.addColorStop(1, '#fffbf2');
     bCtx.fillStyle = bGrad;
     bCtx.fillRect(0, 0, 1024, 1024);
 
-    // Subtle silhouettes of architectural glass mullions and garden greenery
-    bCtx.fillStyle = 'rgba(15, 20, 26, 0.65)';
-    bCtx.fillRect(200, 0, 12, 1024);
-    bCtx.fillRect(512, 0, 14, 1024);
-    bCtx.fillRect(820, 0, 12, 1024);
-    bCtx.fillRect(0, 320, 1024, 14);
+    // Radiant Sun Disc & Golden Flare
+    const sunGrad = bCtx.createRadialGradient(680, 240, 15, 680, 240, 380);
+    sunGrad.addColorStop(0, '#ffffff');
+    sunGrad.addColorStop(0.18, 'rgba(255, 255, 230, 0.98)');
+    sunGrad.addColorStop(0.42, 'rgba(255, 230, 145, 0.75)');
+    sunGrad.addColorStop(0.70, 'rgba(255, 205, 110, 0.35)');
+    sunGrad.addColorStop(1, 'rgba(255, 190, 80, 0)');
+    bCtx.fillStyle = sunGrad;
+    bCtx.fillRect(0, 0, 1024, 700);
 
-    bCtx.fillStyle = 'rgba(20, 32, 24, 0.55)';
-    for (let s = 80; s < 950; s += 70) {
-      bCtx.fillRect(s, 450, 8, 574);
+    // Sunlit architectural terrace pergola and bamboo greenery in background
+    bCtx.fillStyle = 'rgba(22, 38, 25, 0.40)';
+    bCtx.fillRect(200, 0, 10, 1024);
+    bCtx.fillRect(512, 0, 12, 1024);
+    bCtx.fillRect(820, 0, 10, 1024);
+    bCtx.fillRect(0, 320, 1024, 12);
+
+    for (let s = 60; s < 980; s += 55) {
+      bCtx.fillStyle = 'rgba(38, 70, 42, 0.45)';
+      bCtx.fillRect(s, 420, 7, 604);
       bCtx.beginPath();
-      bCtx.ellipse(s + 20, 550, 40, 12, Math.PI / 6, 0, Math.PI * 2);
-      bCtx.ellipse(s - 20, 680, 45, 14, -Math.PI / 6, 0, Math.PI * 2);
-      bCtx.ellipse(s + 25, 780, 40, 12, Math.PI / 5, 0, Math.PI * 2);
+      bCtx.ellipse(s + 20, 520, 38, 12, Math.PI / 6, 0, Math.PI * 2);
+      bCtx.ellipse(s - 18, 640, 42, 13, -Math.PI / 6, 0, Math.PI * 2);
+      bCtx.ellipse(s + 22, 740, 38, 12, Math.PI / 5, 0, Math.PI * 2);
       bCtx.fill();
     }
 
@@ -3070,7 +3065,7 @@ export class ShowroomScene {
     const backdropMat = new THREE.MeshBasicMaterial({
       map: backdropTex,
       transparent: true,
-      opacity: 0.88,
+      opacity: 0.98,
     });
     const backdropMesh = new THREE.Mesh(
       new THREE.PlaneGeometry(portalWidth - 0.10, doorHeight - 0.05),
@@ -3079,19 +3074,98 @@ export class ShowroomScene {
     backdropMesh.position.set(0, doorHeight / 2, -0.12);
     gateGroup.add(backdropMesh);
 
+    // -------------------------------------------------------------
+    // Luminous Volumetric Sun Rays (Sunbeams Streaming from Outside into Showroom)
+    // -------------------------------------------------------------
+    const sunRayGroup = new THREE.Group();
+
+    // Canvas texture for natural soft-edged sunbeam striations
+    const rayCanvas = document.createElement('canvas');
+    rayCanvas.width = 512;
+    rayCanvas.height = 512;
+    const rCtx = rayCanvas.getContext('2d')!;
+    const rGrad = rCtx.createLinearGradient(0, 0, 512, 512);
+    rGrad.addColorStop(0, 'rgba(255, 252, 230, 0.92)');
+    rGrad.addColorStop(0.28, 'rgba(255, 238, 180, 0.55)');
+    rGrad.addColorStop(0.65, 'rgba(255, 218, 140, 0.22)');
+    rGrad.addColorStop(1, 'rgba(255, 200, 110, 0.0)');
+    rCtx.fillStyle = rGrad;
+    rCtx.fillRect(0, 0, 512, 512);
+
+    // Subtle sunbeam shaft streaks
+    rCtx.fillStyle = 'rgba(255, 255, 255, 0.22)';
+    for (let i = 0; i < 8; i++) {
+      rCtx.fillRect(i * 64, 0, 22, 512);
+    }
+
+    const rayTex = new THREE.CanvasTexture(rayCanvas);
+    const rayMat = new THREE.MeshBasicMaterial({
+      map: rayTex,
+      color: 0xfff4d6,
+      transparent: true,
+      opacity: 0.38,
+      blending: THREE.AdditiveBlending,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+    });
+
+    // 4 Volumetric Sunlight Shafts angled into the room
+    const rayConfigs = [
+      { width: 2.2, length: 4.8, rotX: 0.58, rotY: 0.12, rotZ: -0.22, posX: -0.3, posY: 2.1, posZ: 1.2 },
+      { width: 1.8, length: 5.2, rotX: 0.62, rotY: 0.08, rotZ: -0.18, posX: 0.2, posY: 2.3, posZ: 1.4 },
+      { width: 2.4, length: 4.6, rotX: 0.55, rotY: 0.15, rotZ: -0.26, posX: -0.6, posY: 1.9, posZ: 1.0 },
+      { width: 1.5, length: 5.5, rotX: 0.65, rotY: 0.05, rotZ: -0.15, posX: 0.5, posY: 2.4, posZ: 1.6 },
+    ];
+
+    rayConfigs.forEach((rc) => {
+      const rayGeom = new THREE.PlaneGeometry(rc.width, rc.length);
+      const rayMesh = new THREE.Mesh(rayGeom, rayMat);
+      rayMesh.position.set(rc.posX, rc.posY, rc.posZ);
+      rayMesh.rotation.set(rc.rotX, rc.rotY, rc.rotZ);
+      sunRayGroup.add(rayMesh);
+    });
+
+    // Warm Sunlit Light Pool Spill on the Floor
+    const sunFloorCanvas = document.createElement('canvas');
+    sunFloorCanvas.width = 512;
+    sunFloorCanvas.height = 512;
+    const sfCtx = sunFloorCanvas.getContext('2d')!;
+    const sfGrad = sfCtx.createRadialGradient(256, 256, 20, 256, 256, 250);
+    sfGrad.addColorStop(0, 'rgba(255, 248, 220, 0.75)');
+    sfGrad.addColorStop(0.35, 'rgba(255, 228, 165, 0.45)');
+    sfGrad.addColorStop(0.75, 'rgba(255, 212, 135, 0.15)');
+    sfGrad.addColorStop(1, 'rgba(255, 200, 100, 0.0)');
+    sfCtx.fillStyle = sfGrad;
+    sfCtx.fillRect(0, 0, 512, 512);
+
+    const sunFloorTex = new THREE.CanvasTexture(sunFloorCanvas);
+    const sunFloorMat = new THREE.MeshBasicMaterial({
+      map: sunFloorTex,
+      transparent: true,
+      opacity: 0.46,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+    });
+    const sunFloorMesh = new THREE.Mesh(new THREE.PlaneGeometry(3.2, 4.0), sunFloorMat);
+    sunFloorMesh.rotation.x = -Math.PI / 2;
+    sunFloorMesh.rotation.z = -0.15;
+    sunFloorMesh.position.set(0, 0.008, 1.8);
+    sunRayGroup.add(sunFloorMesh);
+
+    gateGroup.add(sunRayGroup);
+
     // 4. Double Glass Pivot Doors
     const doorLeafWidth = (portalWidth - 0.18) / 2; // ~1.51m each
     const doorLeafHeight = doorHeight - 0.08; // ~3.12m
 
-    const glassMat = new THREE.MeshPhysicalMaterial({
+    // Fast, lightweight architectural crystal glass (ZERO multi-pass transmission lag!)
+    const glassMat = new THREE.MeshStandardMaterial({
       color: 0xebf2fa,
       transparent: true,
-      opacity: 0.38,
-      roughness: 0.06,
-      metalness: 0.15,
-      transmission: 0.88,
-      ior: 1.52,
-      thickness: 0.02,
+      opacity: 0.28,
+      roughness: 0.05,
+      metalness: 0.20,
+      depthWrite: false, // Prevents Z-sorting stalls during 360 rotation!
       side: THREE.DoubleSide,
     });
 
@@ -3460,10 +3534,10 @@ export class ShowroomScene {
 
   public rotateCamera(deltaX: number, deltaY: number) {
     if (this.isTransitioning) return;
-    const sensitivity = 0.0018;
+    const sensitivity = 0.0022;
     this.targetEuler.y -= deltaX * sensitivity;
     this.targetEuler.x -= deltaY * sensitivity;
-    this.targetEuler.x = Math.max(-Math.PI / 2.5, Math.min(Math.PI / 2.5, this.targetEuler.x));
+    this.targetEuler.x = Math.max(-Math.PI / 2.3, Math.min(Math.PI / 2.3, this.targetEuler.x));
   }
 
   public toggleLights(forcedState?: boolean) {
@@ -3624,9 +3698,10 @@ export class ShowroomScene {
   // Smooth Physics Movement: Slower, Gentle, Controlled Luxury Pace
   // -----------------------------------------------------------------
   private updateMovement(dt: number) {
-    // 1. Smooth Camera Look Lerp
-    this.euler.y = THREE.MathUtils.lerp(this.euler.y, this.targetEuler.y, Math.min(1, dt * 14));
-    this.euler.x = THREE.MathUtils.lerp(this.euler.x, this.targetEuler.x, Math.min(1, dt * 14));
+    // 1. Direct, Buttery-Smooth Camera Look (Zero input lag in 360 rotation)
+    const lookLerp = Math.min(1, dt * 24);
+    this.euler.y = THREE.MathUtils.lerp(this.euler.y, this.targetEuler.y, lookLerp);
+    this.euler.x = THREE.MathUtils.lerp(this.euler.x, this.targetEuler.x, lookLerp);
     this.camera.quaternion.setFromEuler(this.euler);
 
     // 2. Exact Forward & Right Horizontal Vectors
