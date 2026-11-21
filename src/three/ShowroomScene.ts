@@ -47,6 +47,25 @@ interface RailGarmentEntry {
   targetOpacityFront: number;
 }
 
+export interface StandGarmentEntry {
+  group: THREE.Group;
+  initialX: number;
+  initialY: number;
+  initialZ: number;
+  currentX: number;
+  targetX: number;
+  currentZ: number;
+  targetZ: number;
+  currentRotZ: number;
+  targetRotZ: number;
+  currentRotY: number;
+  targetRotY: number;
+  currentScale: number;
+  targetScale: number;
+  phaseOffset: number;
+  product: Product;
+}
+
 export interface DenimCubbyItem {
   id: string;
   name: string;
@@ -163,6 +182,7 @@ export class ShowroomScene {
 
   // Rail Garments tracking
   private railGarments: RailGarmentEntry[] = [];
+  private standGarments: StandGarmentEntry[] = [];
   public currentRailIndex = 5; // Default focused on ACG Lava Flow Puffer (Hero piece!)
 
   // Lighting State
@@ -2903,8 +2923,13 @@ export class ShowroomScene {
       {
         id: 10,
         title: "DISTRESSED VINTAGE DENIM JACKET",
-        desc: "Light Indigo Wash • 14oz Japanese Rigid Denim",
+        desc: "Light Indigo Wash • 14oz Japanese Rigid Denim • Distressed Detailing & Brass Hardware",
         price: 18999,
+        badge: "EXCLUSIVE",
+        colors: [
+          { name: "Vintage Light Indigo", hex: "#7a9cb8" },
+          { name: "Bleached Wash", hex: "#a4bccc" },
+        ],
         frontAspect: 0.81,
         frontTex: './hanging_cloth/item_10_front.png',
         posX: -0.48,
@@ -2912,8 +2937,13 @@ export class ShowroomScene {
       {
         id: 1,
         title: "TAILORED WOOL COAT",
-        desc: "Midnight Navy • Tailored Italian Wool",
+        desc: "Midnight Navy • Tailored Italian Wool • Signature Horn Buttons",
         price: 24999,
+        badge: "SIGNATURE",
+        colors: [
+          { name: "Midnight Navy", hex: "#1c2438" },
+          { name: "Obsidian Black", hex: "#11141a" },
+        ],
         frontAspect: 0.63,
         frontTex: './hanging_cloth/item_1_front.png',
         posX: -0.16,
@@ -2921,8 +2951,13 @@ export class ShowroomScene {
       {
         id: 3,
         title: "SAND FLEECE SWEATSHIRT",
-        desc: "Raw Natural Cotton • Minimalist Chest Logo",
+        desc: "Raw Natural Sand Cotton • Minimalist Chest Logo • Ribbed Crewneck",
         price: 14499,
+        badge: "MINIMALIST",
+        colors: [
+          { name: "Raw Natural Sand", hex: "#d6cbbd" },
+          { name: "Warm Bone White", hex: "#eae4dc" },
+        ],
         frontAspect: 0.63,
         frontTex: './hanging_cloth/item_3_front.png',
         posX: 0.16,
@@ -2930,8 +2965,13 @@ export class ShowroomScene {
       {
         id: 9,
         title: "EMERALD HEAVY HOODIE",
-        desc: "Botanical Pigment Wash • Heavy French Terry",
+        desc: "Botanical Pigment Wash • 480 GSM Heavy French Terry • Structured Hood",
         price: 16499,
+        badge: "LIMITED",
+        colors: [
+          { name: "Emerald Pine Green", hex: "#1b4028" },
+          { name: "Deep Forest Shadow", hex: "#112618" },
+        ],
         frontAspect: 0.75,
         frontTex: './hanging_cloth/item_9_front.png',
         posX: 0.48,
@@ -2972,7 +3012,7 @@ export class ShowroomScene {
       gGroup.add(clothMesh);
 
       // Raycast hitbox
-      const hitGeom = new THREE.BoxGeometry(0.35, clothHeight + 0.1, 0.25);
+      const hitGeom = new THREE.BoxGeometry(0.38, clothHeight + 0.12, 0.28);
       const hitMat = new THREE.MeshBasicMaterial({ visible: false });
       const hitMesh = new THREE.Mesh(hitGeom, hitMat);
       hitMesh.position.set(0, -clothHeight / 2, 0);
@@ -2983,30 +3023,107 @@ export class ShowroomScene {
         subtitle: si.desc,
         price: si.price,
         category: 'Clothing',
-        sectionName: 'CAPSULE STAND',
+        sectionName: 'FREESTANDING CAPSULE STAND',
         garmentType: 'colorblock-hoodie',
         description: si.desc,
         fabricDetails: {
-          composition: '100% Japanese Selvedge / French Terry Cotton',
-          weight: 'Heavyweight Luxury Gauge',
+          composition: '100% Japanese Selvedge / Heavyweight French Terry Cotton',
+          weight: 'Heavyweight Luxury Gauge (480 GSM)',
           weave: 'Artisanal Loom Weave',
-          treatment: 'Signature Wash',
-          care: 'Dry Clean Recommended',
+          treatment: 'Signature Vintage Wash & Hand Distress',
+          care: 'Dry Clean or Cold Wash Hang Dry',
         },
-        colors: [{ name: 'Default', hex: '#222222' }],
+        colors: si.colors,
         sizes: ['S', 'M', 'L', 'XL'],
-        sku: `STD-0${idx + 1}`,
-        features: ['Boutique Capsule Edition', 'Hand-finished detailing', 'Sculptural display fit'],
+        badge: si.badge,
+        sku: `CAPSULE-0${idx + 1}`,
+        features: [
+          'Boutique Capsule Edition',
+          'Hand-finished detailing & custom wooden wishbone hanger',
+          'Sculptural display fit with authentic hang tag'
+        ],
       };
 
       hitMesh.userData = { isHitBox: true, product: standProduct };
       gGroup.add(hitMesh);
       this.interactiveMeshes.push(hitMesh);
 
+      this.standGarments.push({
+        group: gGroup,
+        initialX: si.posX,
+        initialY: hangingRailY,
+        initialZ: 0,
+        currentX: si.posX,
+        targetX: si.posX,
+        currentZ: 0,
+        targetZ: 0,
+        currentRotZ: 0,
+        targetRotZ: 0,
+        currentRotY: 0,
+        targetRotY: 0,
+        currentScale: 1.0,
+        targetScale: 1.0,
+        phaseOffset: idx * 1.57,
+        product: standProduct,
+      });
+
       rackGroup.add(gGroup);
     });
 
     this.scene.add(rackGroup);
+  }
+
+  // Interactive Hover Simulation for Freestanding Rack Garments
+  private applyStandHover(productId: string) {
+    const activeIdx = this.standGarments.findIndex((e) => e.product.id === productId);
+    if (activeIdx === -1) return;
+
+    this.standGarments.forEach((entry, i) => {
+      if (i === activeIdx) {
+        // Step forward towards viewer, lift & scale up!
+        entry.targetZ = 0.16;
+        entry.targetScale = 1.08;
+        entry.targetRotY = 0.12;
+        entry.targetRotZ = 0.04;
+      } else {
+        // Neighboring garments shift aside gently along the hanging rail
+        const dir = i < activeIdx ? -1 : 1;
+        entry.targetX = entry.initialX + dir * 0.06;
+        entry.targetZ = -0.04;
+        entry.targetScale = 0.96;
+        entry.targetRotY = -dir * 0.08;
+        entry.targetRotZ = -dir * 0.03;
+      }
+    });
+  }
+
+  private resetStandHover() {
+    this.standGarments.forEach((entry) => {
+      entry.targetX = entry.initialX;
+      entry.targetZ = 0;
+      entry.targetScale = 1.0;
+      entry.targetRotY = 0;
+      entry.targetRotZ = 0;
+    });
+  }
+
+  // Tactile Spring Click Motion when user selects a stand garment
+  private animateStandItemClick(productId: string) {
+    const entry = this.standGarments.find((e) => e.product.id === productId);
+    if (!entry) return;
+
+    // Satisfying tactile spring forward pulse
+    entry.targetZ = 0.28;
+    entry.targetScale = 1.15;
+    entry.targetRotZ = -0.08;
+
+    setTimeout(() => {
+      if (entry) {
+        entry.targetZ = 0.16;
+        entry.targetScale = 1.08;
+        entry.targetRotZ = 0;
+      }
+    }, 350);
   }
 
   // -----------------------------------------------------------------
@@ -3870,6 +3987,13 @@ export class ShowroomScene {
           this.focusRailGarment(product.railIndex);
           return;
         }
+        if (product.id.startsWith('stand-item-')) {
+          this.animateStandItemClick(product.id);
+          this.callbacks.onProductSelect?.(product);
+          return;
+        }
+        this.callbacks.onProductSelect?.(product);
+        return;
       }
     }
   }
@@ -3934,6 +4058,7 @@ export class ShowroomScene {
       if (hit.userData && hit.userData.isNightLamp) {
         this.container.style.cursor = 'pointer';
         this.clearDenimCubbyHover();
+        this.resetStandHover();
         if (this.hoveredProduct) {
           this.hoveredProduct = null;
           this.callbacks.onProductHover(null);
@@ -3946,6 +4071,7 @@ export class ShowroomScene {
       if (hit.userData && hit.userData.isGlassGate) {
         this.container.style.cursor = 'pointer';
         this.clearDenimCubbyHover();
+        this.resetStandHover();
         if (this.hoveredProduct) {
           this.hoveredProduct = null;
           this.callbacks.onProductHover(null);
@@ -3958,6 +4084,7 @@ export class ShowroomScene {
       if (hit.userData && hit.userData.isDenimCubby && hit.userData.denimItem) {
         this.container.style.cursor = 'pointer';
         this.setDenimCubbyHover(hit.userData.denimItem);
+        this.resetStandHover();
         if (this.hoveredProduct) {
           this.hoveredProduct = null;
           this.callbacks.onProductHover(null);
@@ -3978,10 +4105,18 @@ export class ShowroomScene {
         // Apply Hanging Cloth shifting & flipping simulation to 3D rail garments!
         if (product.category === 'Clothing' && product.railIndex !== undefined) {
           this.apply3DHoverSimulation(product.railIndex);
+          this.resetStandHover();
+        } else if (product.id.startsWith('stand-item-')) {
+          this.applyStandHover(product.id);
+          this.reset3DHoverSimulation();
+        } else {
+          this.reset3DHoverSimulation();
+          this.resetStandHover();
         }
       }
     } else {
       this.clearDenimCubbyHover();
+      this.resetStandHover();
       if (this.hoveredProduct) {
         this.hoveredProduct = null;
         this.container.style.cursor = 'default';
@@ -4179,9 +4314,35 @@ export class ShowroomScene {
       }
     });
 
+    // 3. Animate Freestanding Rack Garments (Natural idle fabric sway + smooth hover/click lerp)
+    const standLerpFactor = 1 - Math.pow(0.85, clampedDt * 60);
+    const animTime = performance.now() * 0.001;
+    this.standGarments.forEach((entry) => {
+      // 1. Natural idle pendulum sway & subtle fabric breathing
+      const idleSway = Math.sin(animTime * 1.6 + entry.phaseOffset) * 0.032;
+      const idleBreath = Math.sin(animTime * 2.2 + entry.phaseOffset) * 0.003;
+
+      // 2. Smooth position lerping
+      entry.currentX += (entry.targetX - entry.currentX) * standLerpFactor;
+      entry.currentZ += (entry.targetZ - entry.currentZ) * standLerpFactor;
+      entry.group.position.x = entry.currentX;
+      entry.group.position.z = entry.currentZ;
+      entry.group.position.y = entry.initialY + idleBreath;
+
+      // 3. Smooth rotation lerping + idle sway
+      entry.currentRotZ += (entry.targetRotZ - entry.currentRotZ) * standLerpFactor;
+      entry.currentRotY += (entry.targetRotY - entry.currentRotY) * standLerpFactor;
+      entry.group.rotation.z = entry.currentRotZ + idleSway;
+      entry.group.rotation.y = entry.currentRotY;
+
+      // 4. Smooth scale lerping
+      entry.currentScale += (entry.targetScale - entry.currentScale) * standLerpFactor;
+      entry.group.scale.setScalar(entry.currentScale);
+    });
+
     // Subtle idle floating motion when denim is unfolded in front of camera
     if (this.isDenimUnfolded && this.activeUnfoldedGroup && (!this.denimAnimationTimeline || !this.denimAnimationTimeline.isActive())) {
-      this.activeUnfoldedGroup.position.y += Math.sin(time * 2.2) * 0.0006;
+      this.activeUnfoldedGroup.position.y += Math.sin(animTime * 2.2) * 0.0006;
     }
 
     // Smooth Grand Glass Gate Door Swing Animation
