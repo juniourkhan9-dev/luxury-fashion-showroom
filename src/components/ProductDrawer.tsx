@@ -28,9 +28,12 @@ export const ProductDrawer: React.FC<ProductDrawerProps> = ({
   };
 
   return (
-    <div className="fixed inset-y-0 right-0 z-50 w-full max-w-md pointer-events-auto flex flex-col glass-panel shadow-2xl border-l border-white/10 transition-transform duration-500 ease-out animate-in slide-in-from-right">
+    <div className="fixed inset-x-0 bottom-0 sm:inset-y-0 sm:right-0 sm:left-auto z-50 w-full sm:max-w-md max-h-[85vh] sm:max-h-full rounded-t-3xl sm:rounded-none pointer-events-auto flex flex-col glass-panel shadow-2xl border-t sm:border-t-0 sm:border-l border-white/10 transition-transform duration-500 ease-out animate-in slide-in-from-bottom sm:slide-in-from-right overflow-hidden">
+      {/* Mobile drag handle */}
+      <div className="w-10 h-1 bg-white/20 rounded-full mx-auto my-2 sm:hidden shrink-0" />
+
       {/* Header bar */}
-      <div className="flex items-center justify-between px-6 py-5 border-b border-white/10 bg-[#0d0e12]/80 backdrop-blur-md">
+      <div className="flex items-center justify-between px-5 py-3 sm:px-6 sm:py-5 border-b border-white/10 bg-[#0d0e12]/80 backdrop-blur-md shrink-0">
         <div className="flex items-center gap-2">
           <span className="text-[11px] font-mono tracking-widest text-[#d4af37] uppercase">
             {product.sectionName}
@@ -51,7 +54,7 @@ export const ProductDrawer: React.FC<ProductDrawerProps> = ({
       </div>
 
       {/* Scrollable details */}
-      <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
+      <div className="flex-1 overflow-y-auto px-5 py-4 sm:px-6 sm:py-5 space-y-4 sm:space-y-6">
         {/* Title & Price */}
         <div>
           <h2 className="text-2xl font-serif-luxury font-medium tracking-tight text-white">
@@ -187,7 +190,7 @@ export const ProductDrawer: React.FC<ProductDrawerProps> = ({
       </div>
 
       {/* Footer / Add to Bag */}
-      <div className="p-5 border-t border-white/10 bg-[#0d0e12] space-y-2">
+      <div className="p-4 sm:p-5 border-t border-white/10 bg-[#0d0e12] space-y-2 shrink-0">
         <button
           onClick={handleAdd}
           className={`w-full py-3.5 px-4 rounded-xl font-medium text-xs tracking-wider uppercase transition-all duration-300 flex items-center justify-center gap-2 ${

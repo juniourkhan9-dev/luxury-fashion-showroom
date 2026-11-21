@@ -1697,7 +1697,10 @@ export class ShowroomScene {
     });
 
     // Proportional, scaled-down size so the ENTIRE jeans (waistband to bottom hems) fits completely in frame
-    const fullHeight = 0.65;
+    const isMobile = typeof window !== 'undefined' && (
+      /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || window.innerWidth < 768
+    );
+    const fullHeight = isMobile ? 0.48 : 0.65;
     const fullWidth = fullHeight * item.unfoldedAspect;
 
     // Segmented plane with organic fabric wave & curvature
@@ -1720,18 +1723,24 @@ export class ShowroomScene {
     unfoldGroup.renderOrder = 9999;
     unfoldGroup.add(unfoldedMesh);
 
-    // 3. Calculate target position right in front of camera (1.05m away, perfectly framed without top/bottom cropping)
+    // 3. Calculate target position right in front of camera
     const camPos = this.camera.position.clone();
     const camDir = new THREE.Vector3();
     this.camera.getWorldDirection(camDir);
 
-    const targetDist = 1.05;
+    const targetDist = isMobile ? 1.15 : 1.05;
     const targetPos = camPos.clone().add(camDir.clone().multiplyScalar(targetDist));
-    targetPos.y = this.camera.position.y; // Centered vertically in viewport
 
-    // Shift jeans towards the left-center of the screen so the right-side product drawer never overlaps
-    const rightVec = new THREE.Vector3(1, 0, 0).applyQuaternion(this.camera.quaternion);
-    targetPos.sub(rightVec.clone().multiplyScalar(0.28));
+    if (isMobile) {
+      // In mobile portrait, position jeans in the upper half of viewport above the bottom sheet
+      targetPos.y = this.camera.position.y + 0.14;
+      // Centered horizontally without shift so jeans are never cut off by phone screen edge
+    } else {
+      // On desktop widescreen, center vertically and shift left so right-side drawer doesn't overlap
+      targetPos.y = this.camera.position.y;
+      const rightVec = new THREE.Vector3(1, 0, 0).applyQuaternion(this.camera.quaternion);
+      targetPos.sub(rightVec.clone().multiplyScalar(0.28));
+    }
 
     const targetQuat = this.camera.quaternion.clone();
 
@@ -1901,32 +1910,38 @@ export class ShowroomScene {
     this.hideDenimHUD();
 
     const hud = document.createElement('div');
+    hud.id = 'denim-hud';
     hud.className =
-      'fixed top-0 right-0 h-full w-[350px] max-w-[85vw] z-50 bg-zinc-950/95 text-white backdrop-blur-2xl border-l border-white/10 shadow-2xl flex flex-col justify-between p-5 select-none animate-in slide-in-from-right duration-300 pointer-events-auto overflow-y-auto';
+      'fixed inset-x-0 bottom-0 md:bottom-auto md:top-0 md:right-0 md:left-auto max-h-[52vh] md:max-h-full h-auto md:h-full w-full md:w-[360px] z-50 bg-zinc-950/95 text-white backdrop-blur-2xl border-t md:border-t-0 md:border-l border-white/10 shadow-2xl rounded-t-3xl md:rounded-none flex flex-col justify-between p-4 md:p-5 select-none animate-in slide-in-from-bottom md:slide-in-from-right duration-300 pointer-events-auto overflow-y-auto';
     hud.innerHTML = `
+      <!-- Mobile Pull Bar Handle -->
+      <div class="w-10 h-1 bg-white/20 rounded-full mx-auto mb-2 md:hidden shrink-0"></div>
+
       <div class="flex flex-col">
         <!-- Top Bar -->
-        <div class="flex items-center justify-between pb-3 border-b border-white/10">
+        <div class="flex items-center justify-between pb-2 md:pb-3 border-b border-white/10">
           <div class="flex items-center gap-2">
             <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
             <span class="text-[10px] font-mono tracking-widest uppercase text-zinc-400">DENIM ARCHIVE LAB</span>
           </div>
-          <button id="close-denim-btn" class="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 active:scale-95 flex items-center justify-center text-zinc-300 hover:text-white transition-all cursor-pointer">
+          <button id="close-denim-btn" class="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 active:scale-95 flex items-center justify-center text-zinc-300 hover:text-white transition-all cursor-pointer" aria-label="Close">
             ✕
           </button>
         </div>
 
         <!-- Product Title & Info -->
-        <div class="mt-4 flex flex-col gap-1 text-left">
+        <div class="mt-2.5 md:mt-4 flex flex-col gap-0.5 md:gap-1 text-left">
           <span class="text-[10px] font-mono tracking-widest text-amber-400/90 uppercase">${item.subname}</span>
-          <h2 class="text-lg font-bold font-sans tracking-wide leading-snug text-white">${item.name}</h2>
-          <div class="mt-1 text-xl font-bold font-mono text-amber-300">${item.price}</div>
+          <div class="flex items-baseline justify-between gap-2">
+            <h2 class="text-base md:text-lg font-bold font-sans tracking-wide leading-snug text-white">${item.name}</h2>
+            <div class="text-lg md:text-xl font-bold font-mono text-amber-300 shrink-0">${item.price}</div>
+          </div>
         </div>
 
         <!-- Size Options -->
-        <div class="mt-3.5 flex flex-col gap-1.5 text-left">
+        <div class="mt-2.5 md:mt-3.5 flex flex-col gap-1.5 text-left">
           <span class="text-[10px] font-mono text-zinc-400 tracking-wider">SELECT WAIST SIZE</span>
-          <div class="flex items-center gap-2" id="size-options-container">
+          <div class="flex items-center gap-1.5 md:gap-2 flex-wrap" id="size-options-container">
             <button class="px-2.5 py-1 text-xs rounded border border-white/20 bg-white/5 hover:bg-white/15 text-zinc-300 cursor-pointer transition-all">28</button>
             <button class="px-2.5 py-1 text-xs rounded border border-amber-400 bg-amber-400/10 text-amber-300 font-bold cursor-pointer transition-all">30</button>
             <button class="px-2.5 py-1 text-xs rounded border border-white/20 bg-white/5 hover:bg-white/15 text-zinc-300 cursor-pointer transition-all">32</button>
@@ -1936,42 +1951,38 @@ export class ShowroomScene {
         </div>
 
         <!-- Divider -->
-        <div class="my-3.5 h-[1px] bg-gradient-to-r from-white/15 to-transparent"></div>
+        <div class="my-2.5 md:my-3.5 h-[1px] bg-gradient-to-r from-white/15 to-transparent"></div>
 
-        <!-- Specifications List -->
-        <div class="flex flex-col gap-2 text-xs text-zinc-300 font-sans text-left">
-          <div class="flex justify-between py-1 border-b border-white/5">
-            <span class="text-zinc-500 font-mono text-[11px]">FIT / CUT</span>
-            <span class="font-medium text-white text-[11px]">${item.fit}</span>
+        <!-- Specifications List (2 cols on mobile, 1 col on desktop) -->
+        <div class="grid grid-cols-2 md:grid-cols-1 gap-1.5 md:gap-2 text-xs text-zinc-300 font-sans text-left">
+          <div class="flex flex-col md:flex-row md:justify-between py-0.5 md:py-1 border-b border-white/5">
+            <span class="text-zinc-500 font-mono text-[10px] md:text-[11px]">FIT / CUT</span>
+            <span class="font-medium text-white text-[11px] truncate">${item.fit}</span>
           </div>
-          <div class="flex justify-between py-1 border-b border-white/5">
-            <span class="text-zinc-500 font-mono text-[11px]">FABRIC WEAVE</span>
-            <span class="font-medium text-white text-[11px]">Japanese Kurabo Selvedge</span>
+          <div class="flex flex-col md:flex-row md:justify-between py-0.5 md:py-1 border-b border-white/5">
+            <span class="text-zinc-500 font-mono text-[10px] md:text-[11px]">FABRIC WEAVE</span>
+            <span class="font-medium text-white text-[11px] truncate">Kurabo Selvedge</span>
           </div>
-          <div class="flex justify-between py-1 border-b border-white/5">
-            <span class="text-zinc-500 font-mono text-[11px]">LOOM CRAFT</span>
-            <span class="font-medium text-white text-[11px]">Vintage Toyoda Shuttle Loom</span>
+          <div class="flex flex-col md:flex-row md:justify-between py-0.5 md:py-1 border-b border-white/5">
+            <span class="text-zinc-500 font-mono text-[10px] md:text-[11px]">LOOM CRAFT</span>
+            <span class="font-medium text-white text-[11px] truncate">Toyoda Shuttle</span>
           </div>
-          <div class="flex justify-between py-1 border-b border-white/5">
-            <span class="text-zinc-500 font-mono text-[11px]">HARDWARE</span>
-            <span class="font-medium text-white text-[11px]">Copper Rivets & Leather Patch</span>
-          </div>
-          <div class="flex justify-between py-1 border-b border-white/5">
-            <span class="text-zinc-500 font-mono text-[11px]">STATUS</span>
-            <span class="font-medium text-emerald-400 text-[11px] flex items-center gap-1.5">
+          <div class="flex flex-col md:flex-row md:justify-between py-0.5 md:py-1 border-b border-white/5">
+            <span class="text-zinc-500 font-mono text-[10px] md:text-[11px]">STATUS</span>
+            <span class="font-medium text-emerald-400 text-[11px] flex items-center gap-1">
               <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-              Tokyo & Oregon Vault In-Stock
+              Tokyo Vault In-Stock
             </span>
           </div>
         </div>
       </div>
 
-      <!-- Action Buttons (Positioned comfortably inside drawer with bottom margin) -->
-      <div class="pt-3 border-t border-white/10 flex flex-col gap-2 mt-4 pb-2">
-        <button id="add-to-wardrobe-btn" class="w-full py-3 px-4 rounded-xl bg-amber-400 hover:bg-amber-300 active:scale-[0.98] text-zinc-950 font-bold text-xs font-mono tracking-wider transition-all flex items-center justify-center gap-2 shadow-lg shadow-amber-400/20 cursor-pointer">
+      <!-- Action Buttons -->
+      <div class="pt-2 md:pt-3 border-t border-white/10 flex flex-col gap-1.5 md:gap-2 mt-2 md:mt-4 pb-1 md:pb-2">
+        <button id="add-to-wardrobe-btn" class="w-full py-2.5 md:py-3 px-4 rounded-xl bg-amber-400 hover:bg-amber-300 active:scale-[0.98] text-zinc-950 font-bold text-xs font-mono tracking-wider transition-all flex items-center justify-center gap-2 shadow-lg shadow-amber-400/20 cursor-pointer">
           <span>ADD TO WARDROBE • ${item.price}</span>
         </button>
-        <button id="fold-return-btn" class="w-full py-2.5 px-4 rounded-xl bg-white/10 hover:bg-white/15 active:scale-[0.98] text-white/90 font-medium text-xs font-sans tracking-wide transition-all flex items-center justify-center gap-2 cursor-pointer border border-white/10">
+        <button id="fold-return-btn" class="w-full py-2 md:py-2.5 px-4 rounded-xl bg-white/10 hover:bg-white/15 active:scale-[0.98] text-white/90 font-medium text-xs font-sans tracking-wide transition-all flex items-center justify-center gap-2 cursor-pointer border border-white/10">
           <span>FOLD & RETURN TO SHELF</span>
           <span class="text-zinc-400 text-xs">✕</span>
         </button>
@@ -3750,6 +3761,7 @@ export class ShowroomScene {
     let isTouchActive = false;
     let touchHasMoved = false;
     let lastTapTime = 0;
+    let lastTouchEndTime = 0;
 
     const onPointerDown = (e: PointerEvent) => {
       // Ignore touch in pointer events to let native multi-touch handlers handle it with zero conflict!
@@ -3804,7 +3816,7 @@ export class ShowroomScene {
     // Mobile Multi-Touch Handlers (Smooth 360 Swipe, 2-Finger Pinch to Walk, Tap to Select)
     const onTouchStart = (e: TouchEvent) => {
       const target = e.target as HTMLElement;
-      if (target.closest('button, nav, header, aside, .glass-panel, input, [role="button"]')) {
+      if (target.closest('button, nav, header, aside, .glass-panel, input, [role="button"], #denim-hud, .denim-hud')) {
         return;
       }
 
@@ -3832,7 +3844,9 @@ export class ShowroomScene {
         prevTouchX = touch.clientX;
         prevTouchY = touch.clientY;
 
-        if (Math.hypot(touch.clientX - touchStartCoords.x, touch.clientY - touchStartCoords.y) > 6) {
+        const totalDist = Math.hypot(touch.clientX - touchStartCoords.x, touch.clientY - touchStartCoords.y);
+        // Only classify as intentional camera drag if movement exceeds touch tap slop (16px)
+        if (totalDist > 16) {
           touchHasMoved = true;
         }
 
@@ -3872,10 +3886,14 @@ export class ShowroomScene {
       if (e.touches.length === 0) {
         isTouchActive = false;
         const now = performance.now();
-        // Check for Tap interaction (if finger didn't drag)
-        if (!touchHasMoved && (now - touchStartTime < 350)) {
+        const touchDuration = now - touchStartTime;
+        const totalDist = Math.hypot(prevTouchX - touchStartCoords.x, prevTouchY - touchStartCoords.y);
+
+        // Check for Tap interaction: finger didn't drag far (< 18px) and released within 450ms
+        if ((!touchHasMoved || totalDist <= 18) && touchDuration < 450) {
+          lastTouchEndTime = now;
           // Double-tap forward walk impulse check
-          if (now - lastTapTime < 300) {
+          if (now - lastTapTime < 280) {
             const cameraLookDir = new THREE.Vector3();
             this.camera.getWorldDirection(cameraLookDir);
             cameraLookDir.y = 0;
@@ -3895,6 +3913,11 @@ export class ShowroomScene {
 
     // Canvas Click: Garment or Bag selection (Desktop Mouse)
     const onCanvasClick = (e: MouseEvent) => {
+      // If a touch tap was just handled within 500ms, ignore this synthetic mouse event!
+      if (performance.now() - lastTouchEndTime < 500) {
+        return;
+      }
+
       // If user was dragging to rotate camera, ignore click!
       if (hasDragged) {
         hasDragged = false;
@@ -3902,7 +3925,7 @@ export class ShowroomScene {
       }
 
       const target = e.target as HTMLElement;
-      if (target.closest('button, nav, header, aside, .glass-panel')) {
+      if (target.closest('button, nav, header, aside, .glass-panel, #denim-hud, .denim-hud')) {
         return;
       }
 
