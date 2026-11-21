@@ -228,7 +228,7 @@ export class ShowroomScene {
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.22;
+    this.renderer.toneMappingExposure = 1.48;
 
     container.innerHTML = '';
     container.appendChild(this.renderer.domElement);
@@ -254,11 +254,11 @@ export class ShowroomScene {
   // -----------------------------------------------------------------
   private buildLighting() {
     // Warm, inviting gallery ambient light (eliminates gloominess!)
-    this.ambientLight = new THREE.AmbientLight(0x545868, 1.70);
+    this.ambientLight = new THREE.AmbientLight(0x787e92, 2.25);
     this.scene.add(this.ambientLight);
 
     // Main Studio Key Light casting gentle defined shadows
-    this.dirLight = new THREE.DirectionalLight(0xfff6ea, 1.65);
+    this.dirLight = new THREE.DirectionalLight(0xfffaee, 2.15);
     this.dirLight.position.set(0, 6.0, 5.5);
     this.dirLight.castShadow = true;
     this.dirLight.shadow.mapSize.width = 2048;
@@ -274,7 +274,7 @@ export class ShowroomScene {
 
     // Rail Spotlights focused on garments against wall
     [-2.5, 0, 2.5].forEach((sx) => {
-      const spot = new THREE.SpotLight(0xfffaee, 2.4, 14, Math.PI / 4, 0.5);
+      const spot = new THREE.SpotLight(0xfffaee, 2.8, 14, Math.PI / 4, 0.5);
       spot.position.set(sx, 4.2, 2.8);
       spot.target.position.set(sx, 1.8, 0);
       this.scene.add(spot);
@@ -291,17 +291,17 @@ export class ShowroomScene {
 
     const ringConfigs = [
       // 1. Center Grand Double Halo Chandelier (Hero rings over central showroom aisle)
-      { x: 0, y: 4.30, z: 2.4, radius: 1.65, tube: 0.035, lightColor: 0xfff6e4, lightIntensity: 2.2, distance: 9.5, wires: 4 },
-      { x: 0, y: 4.45, z: 2.4, radius: 1.05, tube: 0.030, lightColor: 0xfffaee, lightIntensity: 1.8, distance: 8.0, wires: 3 },
+      { x: 0, y: 4.30, z: 2.4, radius: 1.65, tube: 0.035, lightColor: 0xfff6e4, lightIntensity: 3.2, distance: 11.5, wires: 4 },
+      { x: 0, y: 4.45, z: 2.4, radius: 1.05, tube: 0.030, lightColor: 0xfffaee, lightIntensity: 2.6, distance: 10.0, wires: 3 },
 
       // 2. Left Wing Halo (above bags / museum art walkway)
-      { x: -3.4, y: 4.30, z: 2.8, radius: 1.20, tube: 0.032, lightColor: 0xfff6e4, lightIntensity: 2.0, distance: 8.5, wires: 4 },
+      { x: -3.4, y: 4.30, z: 2.8, radius: 1.20, tube: 0.032, lightColor: 0xfff6e4, lightIntensity: 2.8, distance: 10.5, wires: 4 },
 
       // 3. Right Wing Halo (in front of the Denim Archive area)
-      { x: 3.4, y: 4.30, z: 2.8, radius: 1.20, tube: 0.032, lightColor: 0xfff6e4, lightIntensity: 2.0, distance: 8.5, wires: 4 },
+      { x: 3.4, y: 4.30, z: 2.8, radius: 1.20, tube: 0.032, lightColor: 0xfff6e4, lightIntensity: 2.8, distance: 10.5, wires: 4 },
 
       // 4. Forward Rail Halo (suspended right above the clothing rail)
-      { x: 0, y: 4.40, z: 0.8, radius: 1.15, tube: 0.030, lightColor: 0xfffaee, lightIntensity: 2.0, distance: 8.0, wires: 4 },
+      { x: 0, y: 4.40, z: 0.8, radius: 1.15, tube: 0.030, lightColor: 0xfffaee, lightIntensity: 2.8, distance: 10.5, wires: 4 },
     ];
 
     const metalMat = new THREE.MeshStandardMaterial({
@@ -330,7 +330,7 @@ export class ShowroomScene {
       const ledMat = new THREE.MeshStandardMaterial({
         color: 0xffffff,
         emissive: new THREE.Color(cfg.lightColor),
-        emissiveIntensity: 3.2,
+        emissiveIntensity: 3.8,
         roughness: 0.1,
       });
       this.ringEmissiveMaterials.push(ledMat);
@@ -378,11 +378,11 @@ export class ShowroomScene {
     const roomHeight = 5.2; // Realistic ceiling height
     const roomDepth = 13;   // Closer, proportionate depth
 
-    // 1. Studio Main Wall (Sophisticated Warm Charcoal Slate - not gloomy pitch black!)
+    // 1. Studio Main Wall (Lighter Warm Architectural Stone Slate)
     const wallMat = new THREE.MeshStandardMaterial({
-      color: 0x30343e,
-      roughness: 0.82,
-      metalness: 0.05,
+      color: 0x4a4f5d,
+      roughness: 0.76,
+      metalness: 0.04,
     });
 
     const mainWallGeom = new THREE.PlaneGeometry(roomWidth, roomHeight);
@@ -391,11 +391,11 @@ export class ShowroomScene {
     mainWall.receiveShadow = true;
     this.scene.add(mainWall);
 
-    // 2. Polished Studio Floor (Reflective dark slate/graphite with soft sheen)
+    // 2. Polished Studio Floor (Luminous reflective architectural slate with soft sheen)
     const floorMat = new THREE.MeshStandardMaterial({
-      color: 0x242730,
-      roughness: 0.28,
-      metalness: 0.20,
+      color: 0x343844,
+      roughness: 0.22,
+      metalness: 0.24,
     });
     const floorGeom = new THREE.PlaneGeometry(roomWidth, roomDepth);
     floorGeom.rotateX(-Math.PI / 2);
@@ -405,7 +405,7 @@ export class ShowroomScene {
     this.scene.add(floor);
 
     // Elegant architectural grid lines on floor
-    const gridHelper = new THREE.GridHelper(roomWidth, 14, 0x404554, 0x2d303c);
+    const gridHelper = new THREE.GridHelper(roomWidth, 14, 0x5a6074, 0x3d4352);
     gridHelper.position.set(0, 0.002, roomDepth / 2 - 1.5);
     this.scene.add(gridHelper);
 
@@ -436,8 +436,8 @@ export class ShowroomScene {
 
     // 5. Ceiling (Acoustic Matte Slate Ceiling)
     const ceilingMat = new THREE.MeshStandardMaterial({
-      color: 0x22252e,
-      roughness: 0.90,
+      color: 0x363945,
+      roughness: 0.85,
       metalness: 0.02,
     });
     const ceilingGeom = new THREE.PlaneGeometry(roomWidth, roomDepth);
@@ -2388,21 +2388,21 @@ export class ShowroomScene {
 
   public toggleLights(forcedState?: boolean) {
     this.lightsOn = forcedState !== undefined ? forcedState : !this.lightsOn;
-    const targetIntensity = this.lightsOn ? 1.70 : 0.65;
+    const targetIntensity = this.lightsOn ? 2.25 : 0.85;
     this.ambientLight.intensity = targetIntensity;
-    this.dirLight.intensity = this.lightsOn ? 1.65 : 0.60;
+    this.dirLight.intensity = this.lightsOn ? 2.15 : 0.75;
     this.railSpotlights.forEach((sp) => {
-      sp.intensity = this.lightsOn ? 2.4 : 0.7;
+      sp.intensity = this.lightsOn ? 2.8 : 0.9;
     });
     this.shelfSpotlights.forEach((sp) => {
-      sp.intensity = this.lightsOn ? 1.8 : 0.5;
+      sp.intensity = this.lightsOn ? 2.2 : 0.7;
     });
     this.ringPointLights.forEach((pl) => {
-      const base = (pl.userData.baseIntensity as number) || 2.0;
-      pl.intensity = this.lightsOn ? base : 0.5;
+      const base = (pl.userData.baseIntensity as number) || 2.8;
+      pl.intensity = this.lightsOn ? base : 0.7;
     });
     this.ringEmissiveMaterials.forEach((mat) => {
-      mat.emissiveIntensity = this.lightsOn ? 3.2 : 0.8;
+      mat.emissiveIntensity = this.lightsOn ? 3.8 : 1.0;
     });
     this.callbacks.onLightsToggle?.(this.lightsOn);
   }
