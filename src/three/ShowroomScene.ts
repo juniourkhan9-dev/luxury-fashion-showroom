@@ -182,6 +182,13 @@ export class ShowroomScene {
   private nightLampFloorGlowMat: THREE.MeshBasicMaterial | null = null;
   private nightLampPullChain: THREE.Group | null = null;
 
+  // Interactive Grand Architectural Glass Gate (Double Pivot Storefront Doors)
+  public isGlassGateOpen = false;
+  private glassDoorLeftPivot: THREE.Group | null = null;
+  private glassDoorRightPivot: THREE.Group | null = null;
+  private currentGateAngle = 0.20;
+  private targetGateAngle = 0.20;
+
   // Denim Cupboard & Unfolding Animation
   public isDenimUnfolded = false;
   private activeUnfoldedDenim: DenimCubbyItem | null = null;
@@ -245,6 +252,7 @@ export class ShowroomScene {
     this.buildBillingDesk();
     this.buildBotanicalPlanters();
     this.buildLoungeSeating();
+    this.buildGlassGate();
     // (Pedestals removed as requested)
 
     // 5. Setup Listeners & Start Loop
@@ -2885,6 +2893,328 @@ export class ShowroomScene {
   }
 
   // -----------------------------------------------------------------
+  // Interactive Grand Architectural Glass Gate (Double Pivot Storefront Doors)
+  // Positioned on Left Wall (X = -6.95, Z = 7.25) filling the empty wall space!
+  // -----------------------------------------------------------------
+  public toggleGlassGate() {
+    this.isGlassGateOpen = !this.isGlassGateOpen;
+    // 0 = closed flush, ~1.22 rad (~70 deg) = open wide
+    this.targetGateAngle = this.isGlassGateOpen ? (Math.PI / 2.6) : 0;
+
+    // Tactile acoustic sound effect on door swing
+    try {
+      const audioCtx = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(this.isGlassGateOpen ? 280 : 220, audioCtx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(this.isGlassGateOpen ? 440 : 160, audioCtx.currentTime + 0.14);
+      gain.gain.setValueAtTime(0.06, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.15);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.16);
+    } catch {
+      // Audio permission
+    }
+  }
+
+  private buildGlassGate() {
+    const gateGroup = new THREE.Group();
+    const portalCenterX = -6.95;
+    const portalCenterZ = 7.25;
+    const portalWidth = 3.20; // Along Z
+    const portalHeight = 4.20; // Along Y
+    const doorHeight = 3.20;
+    const transomHeight = portalHeight - doorHeight; // 1.0m
+
+    gateGroup.position.set(portalCenterX, 0, portalCenterZ);
+    // Face inwards toward the center of the showroom (+X direction)
+    gateGroup.rotation.y = Math.PI / 2;
+
+    // 1. Sleek Obsidian Matte Black Architectural Steel Casing
+    const frameMat = new THREE.MeshStandardMaterial({
+      color: 0x16181f,
+      roughness: 0.28,
+      metalness: 0.88,
+    });
+
+    const brushedSteelMat = new THREE.MeshStandardMaterial({
+      color: 0xd6dae2,
+      roughness: 0.18,
+      metalness: 0.95,
+    });
+
+    // Outer Portal Frame (Left Jamb, Right Jamb, Top Lintel, Mid Transom Divider)
+    const jambGeom = new THREE.BoxGeometry(0.12, portalHeight, 0.08);
+    const leftJamb = new THREE.Mesh(jambGeom, frameMat);
+    leftJamb.position.set(-portalWidth / 2, portalHeight / 2, 0);
+    gateGroup.add(leftJamb);
+
+    const rightJamb = new THREE.Mesh(jambGeom, frameMat);
+    rightJamb.position.set(portalWidth / 2, portalHeight / 2, 0);
+    gateGroup.add(rightJamb);
+
+    // Top Header Lintel
+    const topLintelGeom = new THREE.BoxGeometry(portalWidth, 0.10, 0.08);
+    const topLintel = new THREE.Mesh(topLintelGeom, frameMat);
+    topLintel.position.set(0, portalHeight - 0.05, 0);
+    gateGroup.add(topLintel);
+
+    // Mid Transom Beam (separates swinging double doors from upper fixed transom glass)
+    const midTransomGeom = new THREE.BoxGeometry(portalWidth, 0.08, 0.08);
+    const midTransom = new THREE.Mesh(midTransomGeom, frameMat);
+    midTransom.position.set(0, doorHeight, 0);
+    gateGroup.add(midTransom);
+
+    // Floor Transition Sill / Saddle Plate
+    const sillGeom = new THREE.BoxGeometry(portalWidth, 0.015, 0.22);
+    const sillMat = new THREE.MeshStandardMaterial({
+      color: 0x22252c,
+      roughness: 0.35,
+      metalness: 0.9,
+    });
+    const sill = new THREE.Mesh(sillGeom, sillMat);
+    sill.position.set(0, 0.008, 0);
+    gateGroup.add(sill);
+
+    // 2. Upper Transom Window with Illuminated Nike Storefront Signage
+    const transomCanvas = document.createElement('canvas');
+    transomCanvas.width = 1024;
+    transomCanvas.height = 320;
+    const tCtx = transomCanvas.getContext('2d')!;
+    tCtx.clearRect(0, 0, 1024, 320);
+
+    // Subtle dark etched frosted background
+    tCtx.fillStyle = 'rgba(18, 20, 26, 0.88)';
+    tCtx.fillRect(0, 0, 1024, 320);
+
+    // Nike Swoosh & Minimalist Typography
+    tCtx.fillStyle = '#f5f7fa';
+    tCtx.font = 'bold 54px "Plus Jakarta Sans", sans-serif';
+    tCtx.textAlign = 'center';
+    tCtx.fillText('NIKE STOREFRONT', 512, 130);
+
+    // Swoosh
+    tCtx.beginPath();
+    tCtx.moveTo(430, 205);
+    tCtx.bezierCurveTo(490, 225, 570, 215, 630, 150);
+    tCtx.bezierCurveTo(580, 180, 530, 195, 480, 190);
+    tCtx.bezierCurveTo(450, 185, 435, 175, 430, 205);
+    tCtx.closePath();
+    tCtx.fillStyle = '#ffffff';
+    tCtx.fill();
+
+    tCtx.font = '500 24px "Plus Jakarta Sans", sans-serif';
+    tCtx.fillStyle = '#9da4b6';
+    tCtx.fillText('VIP LOUNGE & ATRIUM TERRACE • ENTRANCE', 512, 265);
+
+    const transomTex = new THREE.CanvasTexture(transomCanvas);
+    const transomMat = new THREE.MeshBasicMaterial({
+      map: transomTex,
+      transparent: true,
+      opacity: 0.92,
+    });
+    const transomMesh = new THREE.Mesh(
+      new THREE.PlaneGeometry(portalWidth - 0.16, transomHeight - 0.12),
+      transomMat
+    );
+    transomMesh.position.set(0, doorHeight + transomHeight / 2, 0.01);
+    gateGroup.add(transomMesh);
+
+    // Soft overhead LED wash line under transom
+    const gateGlowMat = new THREE.MeshStandardMaterial({
+      color: 0xffffff,
+      emissive: new THREE.Color(0xffeed6),
+      emissiveIntensity: 2.8,
+      roughness: 0.1,
+    });
+    this.ringEmissiveMaterials.push(gateGlowMat);
+    const gateLightStrip = new THREE.Mesh(new THREE.BoxGeometry(portalWidth - 0.12, 0.02, 0.04), gateGlowMat);
+    gateLightStrip.position.set(0, doorHeight - 0.02, 0.02);
+    gateGroup.add(gateLightStrip);
+
+    // 3. Realistic Illuminated Atrium Garden Backdrop Behind the Glass Gate
+    const backdropCanvas = document.createElement('canvas');
+    backdropCanvas.width = 1024;
+    backdropCanvas.height = 1024;
+    const bCtx = backdropCanvas.getContext('2d')!;
+
+    const bGrad = bCtx.createLinearGradient(0, 0, 0, 1024);
+    bGrad.addColorStop(0, '#3a4456');
+    bGrad.addColorStop(0.35, '#56647c');
+    bGrad.addColorStop(0.70, '#2e3746');
+    bGrad.addColorStop(1, '#1a1f29');
+    bCtx.fillStyle = bGrad;
+    bCtx.fillRect(0, 0, 1024, 1024);
+
+    // Subtle silhouettes of architectural glass mullions and garden greenery
+    bCtx.fillStyle = 'rgba(15, 20, 26, 0.65)';
+    bCtx.fillRect(200, 0, 12, 1024);
+    bCtx.fillRect(512, 0, 14, 1024);
+    bCtx.fillRect(820, 0, 12, 1024);
+    bCtx.fillRect(0, 320, 1024, 14);
+
+    bCtx.fillStyle = 'rgba(20, 32, 24, 0.55)';
+    for (let s = 80; s < 950; s += 70) {
+      bCtx.fillRect(s, 450, 8, 574);
+      bCtx.beginPath();
+      bCtx.ellipse(s + 20, 550, 40, 12, Math.PI / 6, 0, Math.PI * 2);
+      bCtx.ellipse(s - 20, 680, 45, 14, -Math.PI / 6, 0, Math.PI * 2);
+      bCtx.ellipse(s + 25, 780, 40, 12, Math.PI / 5, 0, Math.PI * 2);
+      bCtx.fill();
+    }
+
+    const backdropTex = new THREE.CanvasTexture(backdropCanvas);
+    const backdropMat = new THREE.MeshBasicMaterial({
+      map: backdropTex,
+      transparent: true,
+      opacity: 0.88,
+    });
+    const backdropMesh = new THREE.Mesh(
+      new THREE.PlaneGeometry(portalWidth - 0.10, doorHeight - 0.05),
+      backdropMat
+    );
+    backdropMesh.position.set(0, doorHeight / 2, -0.12);
+    gateGroup.add(backdropMesh);
+
+    // 4. Double Glass Pivot Doors
+    const doorLeafWidth = (portalWidth - 0.18) / 2; // ~1.51m each
+    const doorLeafHeight = doorHeight - 0.08; // ~3.12m
+
+    const glassMat = new THREE.MeshPhysicalMaterial({
+      color: 0xebf2fa,
+      transparent: true,
+      opacity: 0.38,
+      roughness: 0.06,
+      metalness: 0.15,
+      transmission: 0.88,
+      ior: 1.52,
+      thickness: 0.02,
+      side: THREE.DoubleSide,
+    });
+
+    const doorSashMat = new THREE.MeshStandardMaterial({
+      color: 0x181a20,
+      roughness: 0.28,
+      metalness: 0.88,
+    });
+
+    const createDoorLeaf = () => {
+      const leafGroup = new THREE.Group();
+
+      // Glass Sheet
+      const glassMesh = new THREE.Mesh(
+        new THREE.BoxGeometry(doorLeafWidth, doorLeafHeight, 0.018),
+        glassMat
+      );
+      glassMesh.position.set(doorLeafWidth / 2, doorLeafHeight / 2, 0);
+      leafGroup.add(glassMesh);
+
+      // Slim perimeter sash framing around glass
+      const sashT = 0.035;
+      const sashD = 0.045;
+      const topS = new THREE.Mesh(new THREE.BoxGeometry(doorLeafWidth, sashT, sashD), doorSashMat);
+      topS.position.set(doorLeafWidth / 2, doorLeafHeight - sashT / 2, 0);
+      leafGroup.add(topS);
+
+      const botS = new THREE.Mesh(new THREE.BoxGeometry(doorLeafWidth, sashT * 2.2, sashD), doorSashMat);
+      botS.position.set(doorLeafWidth / 2, (sashT * 2.2) / 2, 0);
+      leafGroup.add(botS);
+
+      const hingeS = new THREE.Mesh(new THREE.BoxGeometry(sashT, doorLeafHeight, sashD), doorSashMat);
+      hingeS.position.set(sashT / 2, doorLeafHeight / 2, 0);
+      leafGroup.add(hingeS);
+
+      const lockS = new THREE.Mesh(new THREE.BoxGeometry(sashT, doorLeafHeight, sashD), doorSashMat);
+      lockS.position.set(doorLeafWidth - sashT / 2, doorLeafHeight / 2, 0);
+      leafGroup.add(lockS);
+
+      // Luxury Satin Brushed Stainless Steel Long Vertical Pull Bar Handle
+      const handleLen = 2.10;
+      const handleRadius = 0.016;
+      const handleDist = 0.07;
+      const handleX = doorLeafWidth - 0.14;
+      const handleCenterY = 1.60;
+
+      const barGeom = new THREE.CylinderGeometry(handleRadius, handleRadius, handleLen, 16);
+      const frontBar = new THREE.Mesh(barGeom, brushedSteelMat);
+      frontBar.position.set(handleX, handleCenterY, handleDist);
+      leafGroup.add(frontBar);
+
+      const backBar = new THREE.Mesh(barGeom, brushedSteelMat);
+      backBar.position.set(handleX, handleCenterY, -handleDist);
+      leafGroup.add(backBar);
+
+      const standoffGeom = new THREE.CylinderGeometry(0.012, 0.012, handleDist * 2, 12);
+      standoffGeom.rotateX(Math.PI / 2);
+      [-0.85, 0.85].forEach((offsetY) => {
+        const mount = new THREE.Mesh(standoffGeom, brushedSteelMat);
+        mount.position.set(handleX, handleCenterY + offsetY, 0);
+        leafGroup.add(mount);
+      });
+
+      // Frosted safety manifestation bands
+      const frostMat = new THREE.MeshStandardMaterial({
+        color: 0xffffff,
+        transparent: true,
+        opacity: 0.45,
+        roughness: 0.6,
+      });
+      [1.02, 1.25].forEach((fy) => {
+        const band = new THREE.Mesh(new THREE.PlaneGeometry(doorLeafWidth - 0.08, 0.04), frostMat);
+        band.position.set(doorLeafWidth / 2, fy, 0.011);
+        leafGroup.add(band);
+      });
+
+      // Top & Bottom Heavy-duty Floor/Ceiling Pivot Hinges
+      const hingeBoxGeom = new THREE.BoxGeometry(0.065, 0.045, 0.065);
+      const botHinge = new THREE.Mesh(hingeBoxGeom, brushedSteelMat);
+      botHinge.position.set(0.04, 0.025, 0);
+      leafGroup.add(botHinge);
+
+      const topHinge = new THREE.Mesh(hingeBoxGeom, brushedSteelMat);
+      topHinge.position.set(0.04, doorLeafHeight - 0.025, 0);
+      leafGroup.add(topHinge);
+
+      // Invisible Clickable Hitbox for Interaction
+      const hitGeom = new THREE.BoxGeometry(doorLeafWidth, doorLeafHeight, 0.16);
+      const hitMat = new THREE.MeshBasicMaterial({ visible: false });
+      const hitBox = new THREE.Mesh(hitGeom, hitMat);
+      hitBox.position.set(doorLeafWidth / 2, doorLeafHeight / 2, 0);
+      hitBox.userData = { isGlassGate: true };
+      leafGroup.add(hitBox);
+      this.interactiveMeshes.push(hitBox);
+
+      return leafGroup;
+    };
+
+    // Left Pivot Group (Pivots at the left jamb)
+    this.glassDoorLeftPivot = new THREE.Group();
+    this.glassDoorLeftPivot.position.set(-portalWidth / 2 + 0.07, 0.03, 0);
+    const leftLeaf = createDoorLeaf();
+    this.glassDoorLeftPivot.add(leftLeaf);
+    gateGroup.add(this.glassDoorLeftPivot);
+
+    // Right Pivot Group (Pivots at the right jamb)
+    this.glassDoorRightPivot = new THREE.Group();
+    this.glassDoorRightPivot.position.set(portalWidth / 2 - 0.07, 0.03, 0);
+    const rightLeaf = createDoorLeaf();
+    rightLeaf.scale.x = -1;
+    this.glassDoorRightPivot.add(rightLeaf);
+    gateGroup.add(this.glassDoorRightPivot);
+
+    // Initial slight welcoming ajar tilt (12 degrees)
+    this.currentGateAngle = 0.20;
+    this.targetGateAngle = 0.20;
+    this.glassDoorLeftPivot.rotation.y = this.currentGateAngle;
+    this.glassDoorRightPivot.rotation.y = -this.currentGateAngle;
+
+    this.scene.add(gateGroup);
+  }
+
+  // -----------------------------------------------------------------
   // Input Handling: Safe, Controlled, Gentle Luxury Movement
   // -----------------------------------------------------------------
   private setupEventListeners() {
@@ -3072,6 +3402,12 @@ export class ShowroomScene {
           return;
         }
 
+        // Check if user clicked the grand glass gate!
+        if (hit.userData && hit.userData.isGlassGate) {
+          this.toggleGlassGate();
+          return;
+        }
+
         // Check if user clicked a denim cubby compartment!
         if (hit.userData && hit.userData.isDenimCubby && hit.userData.denimItem) {
           this.unfoldDenimItem(hit.userData.denimItem);
@@ -3177,6 +3513,18 @@ export class ShowroomScene {
 
       // Night lamp hover feedback
       if (hit.userData && hit.userData.isNightLamp) {
+        this.container.style.cursor = 'pointer';
+        this.clearDenimCubbyHover();
+        if (this.hoveredProduct) {
+          this.hoveredProduct = null;
+          this.callbacks.onProductHover(null);
+          this.reset3DHoverSimulation();
+        }
+        return;
+      }
+
+      // Grand glass gate hover feedback
+      if (hit.userData && hit.userData.isGlassGate) {
         this.container.style.cursor = 'pointer';
         this.clearDenimCubbyHover();
         if (this.hoveredProduct) {
@@ -3414,6 +3762,13 @@ export class ShowroomScene {
     // Subtle idle floating motion when denim is unfolded in front of camera
     if (this.isDenimUnfolded && this.activeUnfoldedGroup && (!this.denimAnimationTimeline || !this.denimAnimationTimeline.isActive())) {
       this.activeUnfoldedGroup.position.y += Math.sin(time * 2.2) * 0.0006;
+    }
+
+    // Smooth Grand Glass Gate Door Swing Animation
+    if (this.glassDoorLeftPivot && this.glassDoorRightPivot) {
+      this.currentGateAngle = THREE.MathUtils.lerp(this.currentGateAngle, this.targetGateAngle, Math.min(1, dt * 5.0));
+      this.glassDoorLeftPivot.rotation.y = this.currentGateAngle;
+      this.glassDoorRightPivot.rotation.y = -this.currentGateAngle;
     }
 
     // 3. Render
