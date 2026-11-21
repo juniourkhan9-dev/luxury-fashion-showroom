@@ -260,6 +260,11 @@ export class ShowroomScene {
     this.ambientLight = new THREE.AmbientLight(0x787e92, 2.25);
     this.scene.add(this.ambientLight);
 
+    // Natural architectural hemisphere light (provides soft upward bounce so ceiling is warmly illuminated)
+    const hemiLight = new THREE.HemisphereLight(0xfffaee, 0x484c5a, 1.35);
+    hemiLight.position.set(0, 3.5, 5.0);
+    this.scene.add(hemiLight);
+
     // Main Studio Key Light casting gentle defined shadows
     this.dirLight = new THREE.DirectionalLight(0xfffaee, 2.15);
     this.dirLight.position.set(0, 6.0, 5.5);
@@ -287,24 +292,45 @@ export class ShowroomScene {
   }
 
   // -----------------------------------------------------------------
-  // Suspended Architectural Halo / Ring Pendant Lights
+  // Suspended Architectural Halo / Ring Pendant Lights & Ceiling Grid
   // -----------------------------------------------------------------
   private buildCeilingRingLights() {
     const ceilingY = 5.2;
 
+    // Comprehensive store-wide Halo Pendant Chandeliers (Front, Mid-Lounge, and Back Billing Desk)
     const ringConfigs = [
-      // 1. Center Grand Double Halo Chandelier (Hero rings over central showroom aisle)
+      // 1. Forward Rail Halo (suspended right above the clothing rail)
+      { x: 0, y: 4.40, z: 0.8, radius: 1.15, tube: 0.030, lightColor: 0xfffaee, lightIntensity: 2.8, distance: 10.5, wires: 4 },
+
+      // 2. Front Center Grand Double Halo Chandelier (Hero rings over front aisle)
       { x: 0, y: 4.30, z: 2.4, radius: 1.65, tube: 0.035, lightColor: 0xfff6e4, lightIntensity: 3.2, distance: 11.5, wires: 4 },
       { x: 0, y: 4.45, z: 2.4, radius: 1.05, tube: 0.030, lightColor: 0xfffaee, lightIntensity: 2.6, distance: 10.0, wires: 3 },
 
-      // 2. Left Wing Halo (above bags / museum art walkway)
+      // 3. Front Left Wing Halo (above bags / museum art walkway)
       { x: -3.4, y: 4.30, z: 2.8, radius: 1.20, tube: 0.032, lightColor: 0xfff6e4, lightIntensity: 2.8, distance: 10.5, wires: 4 },
 
-      // 3. Right Wing Halo (in front of the Denim Archive area)
+      // 4. Front Right Wing Halo (in front of the Denim Archive area)
       { x: 3.4, y: 4.30, z: 2.8, radius: 1.20, tube: 0.032, lightColor: 0xfff6e4, lightIntensity: 2.8, distance: 10.5, wires: 4 },
 
-      // 4. Forward Rail Halo (suspended right above the clothing rail)
-      { x: 0, y: 4.40, z: 0.8, radius: 1.15, tube: 0.030, lightColor: 0xfffaee, lightIntensity: 2.8, distance: 10.5, wires: 4 },
+      // 5. Central Lounge Halo (suspended directly above the designer bench & coffee table)
+      { x: 0, y: 4.35, z: 6.0, radius: 1.45, tube: 0.032, lightColor: 0xfff6e4, lightIntensity: 3.0, distance: 11.5, wires: 4 },
+      { x: 0, y: 4.48, z: 6.0, radius: 0.95, tube: 0.028, lightColor: 0xfffaee, lightIntensity: 2.4, distance: 10.0, wires: 3 },
+
+      // 6. Mid-Store Left Walkway Halo
+      { x: -3.8, y: 4.35, z: 5.8, radius: 1.15, tube: 0.030, lightColor: 0xfff6e4, lightIntensity: 2.8, distance: 10.5, wires: 4 },
+
+      // 7. Mid-Store Right Walkway Halo
+      { x: 3.8, y: 4.35, z: 5.8, radius: 1.15, tube: 0.030, lightColor: 0xfff6e4, lightIntensity: 2.8, distance: 10.5, wires: 4 },
+
+      // 8. Back Store Grand Double Halo Chandelier (Hero fixture directly above the Billing Desk / Concierge Counter)
+      { x: 0, y: 4.30, z: 9.4, radius: 1.55, tube: 0.035, lightColor: 0xfff4df, lightIntensity: 3.4, distance: 12.0, wires: 4 },
+      { x: 0, y: 4.45, z: 9.4, radius: 1.00, tube: 0.030, lightColor: 0xfffaee, lightIntensity: 2.6, distance: 10.0, wires: 3 },
+
+      // 9. Back Store Left Botanical Zone Halo
+      { x: -4.0, y: 4.35, z: 9.2, radius: 1.15, tube: 0.030, lightColor: 0xfff6e4, lightIntensity: 2.8, distance: 10.5, wires: 4 },
+
+      // 10. Back Store Right Botanical Zone Halo
+      { x: 4.0, y: 4.35, z: 9.2, radius: 1.15, tube: 0.030, lightColor: 0xfff6e4, lightIntensity: 2.8, distance: 10.5, wires: 4 },
     ];
 
     const metalMat = new THREE.MeshStandardMaterial({
@@ -371,6 +397,128 @@ export class ShowroomScene {
 
       this.scene.add(ringGroup);
     });
+
+    // -------------------------------------------------------------
+    // Architectural Recessed Linear LED Ceiling Slits / Track Light Grid
+    // -------------------------------------------------------------
+    const trackCasingMat = new THREE.MeshStandardMaterial({
+      color: 0x16171b,
+      roughness: 0.4,
+      metalness: 0.8,
+    });
+
+    const trackLedMat = new THREE.MeshStandardMaterial({
+      color: 0xffffff,
+      emissive: new THREE.Color(0xfff6e4),
+      emissiveIntensity: 3.2,
+      roughness: 0.1,
+    });
+    this.ringEmissiveMaterials.push(trackLedMat);
+
+    // 4 Longitudinal Continuous Ceiling Light Tracks (from Z = 0.4 to Z = 11.0)
+    const longTrackLength = 10.6;
+    const longTrackCenterZ = 5.7;
+    const trackXPositions = [-4.6, -1.8, 1.8, 4.6];
+
+    trackXPositions.forEach((tx) => {
+      // Outer track channel bezel
+      const casingGeom = new THREE.BoxGeometry(0.14, 0.04, longTrackLength);
+      const casingMesh = new THREE.Mesh(casingGeom, trackCasingMat);
+      casingMesh.position.set(tx, ceilingY - 0.015, longTrackCenterZ);
+      this.scene.add(casingMesh);
+
+      // Glowing LED diffuser strip inside track
+      const stripGeom = new THREE.BoxGeometry(0.08, 0.02, longTrackLength - 0.04);
+      const stripMesh = new THREE.Mesh(stripGeom, trackLedMat);
+      stripMesh.position.set(tx, ceilingY - 0.025, longTrackCenterZ);
+      this.scene.add(stripMesh);
+    });
+
+    // 3 Transverse Architectural Cross-Tracks connecting the grid at Z = 2.4, 6.0, 9.4
+    const crossZPositions = [2.4, 6.0, 9.4];
+    const crossTrackWidth = 10.2;
+
+    crossZPositions.forEach((tz) => {
+      const crossCasingGeom = new THREE.BoxGeometry(crossTrackWidth, 0.038, 0.14);
+      const crossCasingMesh = new THREE.Mesh(crossCasingGeom, trackCasingMat);
+      crossCasingMesh.position.set(0, ceilingY - 0.017, tz);
+      this.scene.add(crossCasingMesh);
+
+      const crossStripGeom = new THREE.BoxGeometry(crossTrackWidth - 0.06, 0.02, 0.08);
+      const crossStripMesh = new THREE.Mesh(crossStripGeom, trackLedMat);
+      crossStripMesh.position.set(0, ceilingY - 0.027, tz);
+      this.scene.add(crossStripMesh);
+    });
+
+    // -------------------------------------------------------------
+    // Flush Recessed Circular LED Downlight Cans (Ceiling Spotlight Grid)
+    // -------------------------------------------------------------
+    const downlightBezelMat = new THREE.MeshStandardMaterial({
+      color: 0x1e2026,
+      roughness: 0.3,
+      metalness: 0.85,
+    });
+    const downlightLensMat = new THREE.MeshStandardMaterial({
+      color: 0xffffff,
+      emissive: new THREE.Color(0xfffaee),
+      emissiveIntensity: 3.5,
+      roughness: 0.1,
+    });
+    this.ringEmissiveMaterials.push(downlightLensMat);
+
+    const downlightCanGeom = new THREE.CylinderGeometry(0.09, 0.09, 0.02, 24);
+    const downlightLensGeom = new THREE.CylinderGeometry(0.068, 0.068, 0.024, 24);
+
+    const downlightRows = [1.2, 3.6, 5.8, 7.8, 9.4, 10.6];
+    const downlightCols = [-4.6, -2.3, 0, 2.3, 4.6];
+
+    downlightRows.forEach((dz) => {
+      downlightCols.forEach((dx) => {
+        const canMesh = new THREE.Mesh(downlightCanGeom, downlightBezelMat);
+        canMesh.position.set(dx, ceilingY - 0.008, dz);
+        this.scene.add(canMesh);
+
+        const lensMesh = new THREE.Mesh(downlightLensGeom, downlightLensMat);
+        lensMesh.position.set(dx, ceilingY - 0.012, dz);
+        this.scene.add(lensMesh);
+      });
+    });
+
+    // Dedicated Ceiling Downlight Spotlights over the Billing Counter (at Z = 9.4)
+    [-1.2, 0, 1.2].forEach((bx) => {
+      const deskSpot = new THREE.SpotLight(0xfffaee, 2.6, 10, Math.PI / 4, 0.45);
+      deskSpot.position.set(bx, ceilingY - 0.05, 9.4);
+      deskSpot.target.position.set(bx, 1.05, 9.4);
+      this.scene.add(deskSpot);
+      this.scene.add(deskSpot.target);
+      this.shelfSpotlights.push(deskSpot);
+    });
+
+    // Perimeter Architectural Cove Light (Warm wash along top wall junctions)
+    const coveGlowMat = new THREE.MeshStandardMaterial({
+      color: 0xffffff,
+      emissive: new THREE.Color(0xffeed6),
+      emissiveIntensity: 2.2,
+      roughness: 0.2,
+    });
+    this.ringEmissiveMaterials.push(coveGlowMat);
+
+    // Back wall cove line at ceiling height
+    const backCoveGeom = new THREE.BoxGeometry(13.8, 0.04, 0.04);
+    const backCove = new THREE.Mesh(backCoveGeom, coveGlowMat);
+    backCove.position.set(0, ceilingY - 0.04, 11.46);
+    this.scene.add(backCove);
+
+    // Left wall cove line
+    const sideCoveGeom = new THREE.BoxGeometry(0.04, 0.04, 11.2);
+    const leftCove = new THREE.Mesh(sideCoveGeom, coveGlowMat);
+    leftCove.position.set(-6.96, ceilingY - 0.04, 5.7);
+    this.scene.add(leftCove);
+
+    // Right wall cove line
+    const rightCove = new THREE.Mesh(sideCoveGeom, coveGlowMat);
+    rightCove.position.set(6.96, ceilingY - 0.04, 5.7);
+    this.scene.add(rightCove);
   }
 
   // -----------------------------------------------------------------
@@ -437,11 +585,11 @@ export class ShowroomScene {
     backWall.receiveShadow = true;
     this.scene.add(backWall);
 
-    // 5. Ceiling (Acoustic Matte Slate Ceiling)
+    // 5. Ceiling (Acoustic Matte Slate Ceiling with architectural finish)
     const ceilingMat = new THREE.MeshStandardMaterial({
-      color: 0x363945,
-      roughness: 0.85,
-      metalness: 0.02,
+      color: 0x484c59,
+      roughness: 0.82,
+      metalness: 0.04,
     });
     const ceilingGeom = new THREE.PlaneGeometry(roomWidth, roomDepth);
     ceilingGeom.rotateX(Math.PI / 2);
