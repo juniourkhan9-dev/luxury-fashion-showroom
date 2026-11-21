@@ -65,13 +65,6 @@ export const HANGING_GARMENTS_LIST: WardrobeGarment[] = [
         price: "$199.00"
       },
       {
-        id: 8,
-        title: "OATMEAL OVERSIZED SWEATSHIRT",
-        shortName: "Sweatshirt",
-        desc: "Soft Earth Tone • Custom Organic Terry Cotton",
-        price: "$199.00"
-      },
-      {
         id: 9,
         title: "EMERALD HEAVY HOODIE",
         shortName: "Hoodie",

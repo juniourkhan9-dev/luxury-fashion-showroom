@@ -826,15 +826,6 @@ export class ShowroomScene {
         frontAspect: 0.75,
       },
       {
-        id: 8,
-        title: "OATMEAL OVERSIZED SWEATSHIRT",
-        shortName: "Sweatshirt",
-        desc: "Soft Earth Tone • Custom Organic Terry Cotton",
-        price: 14499,
-        sideAspect: 0.26,
-        frontAspect: 0.63,
-      },
-      {
         id: 9,
         title: "EMERALD HEAVY HOODIE",
         shortName: "Hoodie",
@@ -885,8 +876,8 @@ export class ShowroomScene {
       garmentGroup.position.set(gx, gy, gz);
 
       // Load side and front PNG textures (exact cutouts with $199 tags)
-      const sideTex = textureLoader.load(`./hanging_cloth/item_${i}_side.png`);
-      const frontTex = textureLoader.load(`./hanging_cloth/item_${i}_front.png`);
+      const sideTex = textureLoader.load(`./hanging_cloth/item_${item.id}_side.png`);
+      const frontTex = textureLoader.load(`./hanging_cloth/item_${item.id}_front.png`);
       sideTex.colorSpace = THREE.SRGBColorSpace;
       frontTex.colorSpace = THREE.SRGBColorSpace;
       sideTex.generateMipmaps = true;
