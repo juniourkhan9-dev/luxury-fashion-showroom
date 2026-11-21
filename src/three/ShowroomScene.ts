@@ -74,9 +74,9 @@ export function generateDenimRackItems(): DenimCubbyItem[] {
       subname: 'JAPANESE KURABO WEAVE',
       fit: 'Classic Straight Leg • Rigid Selvedge',
       price: '$220',
-      foldedImg: '/denim/folded_raw_indigo_single.png',
+      foldedImg: './denim/folded_raw_indigo_single.png',
       foldedAspect: 480 / 291,
-      unfoldedImg: '/denim/unfold_raw_indigo.png',
+      unfoldedImg: './denim/unfold_raw_indigo.png',
       unfoldedAspect: 436 / 856,
     },
     {
@@ -85,9 +85,9 @@ export function generateDenimRackItems(): DenimCubbyItem[] {
       subname: 'ACID STONEWASH ARCHIVE',
       fit: 'Loose Fit Skate Cut • Light Bleach Fade',
       price: '$195',
-      foldedImg: '/denim/folded_ice_bleach_single.png',
+      foldedImg: './denim/folded_ice_bleach_single.png',
       foldedAspect: 480 / 324,
-      unfoldedImg: '/denim/unfold_stone_bleach.png',
+      unfoldedImg: './denim/unfold_stone_bleach.png',
       unfoldedAspect: 685 / 1057,
     },
     {
@@ -96,9 +96,9 @@ export function generateDenimRackItems(): DenimCubbyItem[] {
       subname: 'OVERDYED SULFUR BLACK',
       fit: 'Relaxed Tapered • 13oz Double-Dyed',
       price: '$210',
-      foldedImg: '/denim/folded_obsidian_black_single.png',
+      foldedImg: './denim/folded_obsidian_black_single.png',
       foldedAspect: 480 / 293,
-      unfoldedImg: '/denim/unfold_obsidian_black.png',
+      unfoldedImg: './denim/unfold_obsidian_black.png',
       unfoldedAspect: 677 / 1061,
     },
   ];
@@ -885,8 +885,8 @@ export class ShowroomScene {
       garmentGroup.position.set(gx, gy, gz);
 
       // Load side and front PNG textures (exact cutouts with $199 tags)
-      const sideTex = textureLoader.load(`/hanging_cloth/item_${i}_side.png`);
-      const frontTex = textureLoader.load(`/hanging_cloth/item_${i}_front.png`);
+      const sideTex = textureLoader.load(`./hanging_cloth/item_${i}_side.png`);
+      const frontTex = textureLoader.load(`./hanging_cloth/item_${i}_front.png`);
       sideTex.colorSpace = THREE.SRGBColorSpace;
       frontTex.colorSpace = THREE.SRGBColorSpace;
       sideTex.generateMipmaps = true;
