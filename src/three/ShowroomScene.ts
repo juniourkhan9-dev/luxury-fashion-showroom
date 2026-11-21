@@ -242,6 +242,9 @@ export class ShowroomScene {
     this.buildWoodenCubbyAndBags();
     this.buildWoodenDenimCupboard();
     this.buildCornerNightLamp();
+    this.buildBillingDesk();
+    this.buildBotanicalPlanters();
+    this.buildLoungeSeating();
     // (Pedestals removed as requested)
 
     // 5. Setup Listeners & Start Loop
@@ -2085,6 +2088,599 @@ export class ShowroomScene {
     } catch {
       // Audio context restricted or unavailable
     }
+  }
+
+  // -----------------------------------------------------------------
+  // Luxury Concierge & Billing Desk (Checkout Reception Counter)
+  // -----------------------------------------------------------------
+  private buildBillingDesk() {
+    const deskGroup = new THREE.Group();
+    // Positioned gracefully near the back of the store, facing forward
+    deskGroup.position.set(0, 0, 9.4);
+
+    // 1. Desk Base Cabinet (Dark Ribbed Fluted Wood with Brass Plinth)
+    const woodMat = new THREE.MeshStandardMaterial({
+      color: 0x24262c, // Rich obsidian charcoal oak
+      roughness: 0.65,
+      metalness: 0.08,
+    });
+    const brassMat = new THREE.MeshStandardMaterial({
+      color: 0xd4af37, // Brushed champagne brass
+      roughness: 0.28,
+      metalness: 0.88,
+    });
+    const marbleMat = new THREE.MeshStandardMaterial({
+      color: 0xf0eeea, // Calacatta White Marble
+      roughness: 0.16,
+      metalness: 0.12,
+    });
+
+    const deskW = 2.45;
+    const deskH = 0.98;
+    const deskD = 0.85;
+
+    // Plinth recessed brass base
+    const plinthH = 0.06;
+    const plinth = new THREE.Mesh(
+      new THREE.BoxGeometry(deskW - 0.10, plinthH, deskD - 0.10),
+      brassMat
+    );
+    plinth.position.set(0, plinthH / 2, 0);
+    deskGroup.add(plinth);
+
+    // Core desk box
+    const bodyGeom = new THREE.BoxGeometry(deskW, deskH - plinthH, deskD);
+    const bodyMesh = new THREE.Mesh(bodyGeom, woodMat);
+    bodyMesh.position.set(0, plinthH + (deskH - plinthH) / 2, 0);
+    bodyMesh.castShadow = true;
+    bodyMesh.receiveShadow = true;
+    deskGroup.add(bodyMesh);
+
+    // Architectural Vertical Fluted Slats along the front face
+    const slatCount = 38;
+    const slatSpacing = (deskW - 0.08) / (slatCount - 1);
+    const slatStartX = -(deskW - 0.08) / 2;
+    const slatGeom = new THREE.CylinderGeometry(0.014, 0.014, deskH - plinthH - 0.02, 10);
+    const slatMat = new THREE.MeshStandardMaterial({
+      color: 0x2d3038,
+      roughness: 0.55,
+      metalness: 0.12,
+    });
+    for (let i = 0; i < slatCount; i++) {
+      const slat = new THREE.Mesh(slatGeom, slatMat);
+      slat.position.set(slatStartX + i * slatSpacing, plinthH + (deskH - plinthH) / 2, -deskD / 2 - 0.008);
+      deskGroup.add(slat);
+    }
+
+    // Polished Marble Countertop with subtle overhang
+    const topGeom = new THREE.BoxGeometry(deskW + 0.10, 0.055, deskD + 0.10);
+    const topMesh = new THREE.Mesh(topGeom, marbleMat);
+    topMesh.position.set(0, deskH + 0.055 / 2, 0);
+    topMesh.castShadow = true;
+    topMesh.receiveShadow = true;
+    deskGroup.add(topMesh);
+
+    // Brass accent rim around the countertop
+    const rimGeom = new THREE.BoxGeometry(deskW + 0.11, 0.01, deskD + 0.11);
+    const rimMesh = new THREE.Mesh(rimGeom, brassMat);
+    rimMesh.position.set(0, deskH + 0.055, 0);
+    deskGroup.add(rimMesh);
+
+    // Warm under-counter floor glow LED strip
+    const underLight = new THREE.PointLight(0xffb048, 1.4, 4.0, 1.8);
+    underLight.position.set(0, 0.08, -deskD / 2 - 0.1);
+    deskGroup.add(underLight);
+
+    // 2. Desk Accessories (On Top of Marble Slab)
+    const topY = deskH + 0.055;
+
+    // A. Sleek All-In-One POS Terminal (iMac style screen facing cashier, back to customer)
+    const posGroup = new THREE.Group();
+    posGroup.position.set(-0.45, topY, 0.02);
+
+    const posStandMat = new THREE.MeshStandardMaterial({ color: 0xd8dae0, metalness: 0.92, roughness: 0.2 });
+    const posBase = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.008, 0.16), posStandMat);
+    posBase.position.y = 0.004;
+    posGroup.add(posBase);
+
+    const posStem = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.22, 0.014), posStandMat);
+    posStem.position.set(0, 0.11, 0.02);
+    posStem.rotation.x = -0.15;
+    posGroup.add(posStem);
+
+    // Screen display casing
+    const screenW = 0.44;
+    const screenH = 0.28;
+    const posScreenCasing = new THREE.Mesh(new THREE.BoxGeometry(screenW, screenH, 0.012), posStandMat);
+    posScreenCasing.position.set(0, 0.24, 0.05);
+    posScreenCasing.rotation.x = -0.15;
+    posGroup.add(posScreenCasing);
+
+    // Glowing screen UI facing forward / customer preview
+    const uiCanvas = document.createElement('canvas');
+    uiCanvas.width = 512;
+    uiCanvas.height = 320;
+    const uictx = uiCanvas.getContext('2d')!;
+    uictx.fillStyle = '#0f1115';
+    uictx.fillRect(0, 0, 512, 320);
+    // Header bar
+    uictx.fillStyle = '#1c1f26';
+    uictx.fillRect(0, 0, 512, 50);
+    uictx.fillStyle = '#f0c050';
+    uictx.font = 'bold 20px sans-serif';
+    uictx.fillText('ATELIER CHECKOUT', 24, 34);
+    // Status text
+    uictx.fillStyle = '#ffffff';
+    uictx.font = '24px sans-serif';
+    uictx.fillText('Tap or Insert Card to Pay', 24, 110);
+    uictx.fillStyle = '#8e94a5';
+    uictx.font = '16px sans-serif';
+    uictx.fillText('Boutique Order #84920 • 3 Items', 24, 145);
+    uictx.fillText('Subtotal: $597.00', 24, 185);
+    // Glowing pay button
+    uictx.fillStyle = '#22c55e';
+    uictx.beginPath();
+    uictx.roundRect(24, 230, 200, 48, 8);
+    uictx.fill();
+    uictx.fillStyle = '#000000';
+    uictx.font = 'bold 18px sans-serif';
+    uictx.fillText('AUTHORIZE', 60, 261);
+
+    const uiTex = new THREE.CanvasTexture(uiCanvas);
+    const screenFaceMat = new THREE.MeshBasicMaterial({ map: uiTex });
+    const screenFace = new THREE.Mesh(new THREE.PlaneGeometry(screenW - 0.02, screenH - 0.02), screenFaceMat);
+    screenFace.position.set(0, 0.24, 0.057);
+    screenFace.rotation.x = -0.15;
+    screenFace.rotation.y = Math.PI; // Face towards front walkway
+    posGroup.add(screenFace);
+    deskGroup.add(posGroup);
+
+    // B. Minimalist Contactless Payment Terminal (NFC Pinpad)
+    const pinpadGroup = new THREE.Group();
+    pinpadGroup.position.set(-0.08, topY, -0.22);
+    const pinpadMat = new THREE.MeshStandardMaterial({ color: 0x181a20, roughness: 0.35, metalness: 0.6 });
+    const pinpad = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.03, 0.16), pinpadMat);
+    pinpad.rotation.x = 0.2;
+    pinpadGroup.add(pinpad);
+
+    // NFC Glow LED
+    const nfcLedMat = new THREE.MeshBasicMaterial({ color: 0x4ade80 });
+    const nfcLed = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, 0.005, 12), nfcLedMat);
+    nfcLed.position.set(0, 0.025, 0.02);
+    pinpadGroup.add(nfcLed);
+    deskGroup.add(pinpadGroup);
+
+    // C. Modern Designer Fluted Glass / Ceramic Desk Lamp with Warm Glow
+    const lampGroup = new THREE.Group();
+    lampGroup.position.set(0.68, topY, -0.10);
+
+    const lampBaseMat = new THREE.MeshStandardMaterial({ color: 0x22242a, roughness: 0.2, metalness: 0.9 });
+    const lampBase = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.10, 0.025, 24), lampBaseMat);
+    lampGroup.add(lampBase);
+
+    const lampStem = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, 0.32, 16), brassMat);
+    lampStem.position.y = 0.16;
+    lampGroup.add(lampStem);
+
+    const shadeMat = new THREE.MeshStandardMaterial({
+      color: 0xffffff,
+      emissive: 0xffb355,
+      emissiveIntensity: 2.2,
+      roughness: 0.2,
+    });
+    const shade = new THREE.Mesh(new THREE.SphereGeometry(0.08, 20, 20), shadeMat);
+    shade.position.y = 0.34;
+    lampGroup.add(shade);
+
+    const deskSpot = new THREE.PointLight(0xffb74d, 1.5, 3.5, 1.6);
+    deskSpot.position.set(0, 0.34, 0);
+    lampGroup.add(deskSpot);
+    deskGroup.add(lampGroup);
+
+    // D. Small Architectural Ceramic Vase with Dried Botanical Twigs
+    const vaseGroup = new THREE.Group();
+    vaseGroup.position.set(0.38, topY, 0.15);
+    const vaseMat = new THREE.MeshStandardMaterial({ color: 0xe6e0d5, roughness: 0.7, metalness: 0.05 });
+    const vase = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.065, 0.18, 16), vaseMat);
+    vase.position.y = 0.09;
+    vaseGroup.add(vase);
+
+    // Slender dried botanical stems
+    const twigMat = new THREE.MeshStandardMaterial({ color: 0x8a7050, roughness: 0.8 });
+    for (let t = 0; t < 5; t++) {
+      const twig = new THREE.Mesh(new THREE.CylinderGeometry(0.002, 0.003, 0.35, 6), twigMat);
+      twig.position.set((t - 2) * 0.015, 0.22, (t % 2) * 0.015);
+      twig.rotation.z = (t - 2) * 0.12;
+      twig.rotation.x = ((t % 3) - 1) * 0.1;
+      vaseGroup.add(twig);
+    }
+    deskGroup.add(vaseGroup);
+
+    // 3. Back Credenza / Wall Cabinet with Boutique Gift Packaging (Behind Desk)
+    const credenza = new THREE.Group();
+    credenza.position.set(0, 0, 1.45); // Z = 9.4 + 1.45 = 10.85 (in front of back wall 11.5)
+
+    const credBody = new THREE.Mesh(
+      new THREE.BoxGeometry(2.6, 0.82, 0.45),
+      woodMat
+    );
+    credBody.position.y = 0.82 / 2;
+    credBody.castShadow = true;
+    credenza.add(credBody);
+
+    // Luxury Black Matte Gift Boxes stacked on the credenza
+    const boxMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1d, roughness: 0.35, metalness: 0.4 });
+    const ribbonMat = new THREE.MeshStandardMaterial({ color: 0xd4af37, roughness: 0.25, metalness: 0.85 });
+
+    const boxConfigs = [
+      { x: -0.8, y: 0.82 + 0.10, w: 0.40, h: 0.20, d: 0.32 },
+      { x: -0.8, y: 0.82 + 0.20 + 0.075, w: 0.32, h: 0.15, d: 0.26 },
+      { x: 0.75, y: 0.82 + 0.12, w: 0.45, h: 0.24, d: 0.34 },
+      { x: 0.75, y: 0.82 + 0.24 + 0.08, w: 0.36, h: 0.16, d: 0.28 },
+    ];
+
+    boxConfigs.forEach((bc) => {
+      const box = new THREE.Mesh(new THREE.BoxGeometry(bc.w, bc.h, bc.d), boxMat);
+      box.position.set(bc.x, bc.y, 0);
+      box.castShadow = true;
+      credenza.add(box);
+
+      // Gold ribbon cross on box
+      const ribX = new THREE.Mesh(new THREE.BoxGeometry(bc.w + 0.002, 0.012, 0.04), ribbonMat);
+      ribX.position.set(bc.x, bc.y + bc.h / 2, 0);
+      credenza.add(ribX);
+      const ribZ = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.012, bc.d + 0.002), ribbonMat);
+      ribZ.position.set(bc.x, bc.y + bc.h / 2, 0);
+      credenza.add(ribZ);
+    });
+
+    // Luxury Boutique Shopping Bags with Cord Handles
+    const bagMat = new THREE.MeshStandardMaterial({ color: 0x141416, roughness: 0.45 });
+    [-0.22, 0.18].forEach((bx, idx) => {
+      const bag = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.36, 0.14), bagMat);
+      bag.position.set(bx, 0.82 + 0.18, 0.05);
+      bag.rotation.y = idx === 0 ? 0.08 : -0.06;
+      credenza.add(bag);
+
+      // Handle cord loops
+      const cordMat = new THREE.MeshStandardMaterial({ color: 0xc8c3b5, roughness: 0.7 });
+      const handleGeom = new THREE.TorusGeometry(0.065, 0.004, 8, 20, Math.PI);
+      const hFront = new THREE.Mesh(handleGeom, cordMat);
+      hFront.position.set(bx, 0.82 + 0.36, 0.05 - 0.06);
+      credenza.add(hFront);
+      const hBack = new THREE.Mesh(handleGeom, cordMat);
+      hBack.position.set(bx, 0.82 + 0.36, 0.05 + 0.06);
+      credenza.add(hBack);
+    });
+
+    // 4. Glowing Wall Signage behind credenza: "CONCIERGE & CHECKOUT"
+    const signCanvas = document.createElement('canvas');
+    signCanvas.width = 1024;
+    signCanvas.height = 128;
+    const sctx = signCanvas.getContext('2d')!;
+    sctx.fillStyle = 'rgba(0,0,0,0)';
+    sctx.fillRect(0, 0, 1024, 128);
+    sctx.fillStyle = '#ffffff';
+    sctx.font = 'bold 36px "Inter", "Helvetica Neue", sans-serif';
+    sctx.textAlign = 'center';
+    sctx.letterSpacing = '6px';
+    sctx.fillText('CONCIERGE  •  CHECKOUT', 512, 75);
+
+    const signTex = new THREE.CanvasTexture(signCanvas);
+    const signMat = new THREE.MeshStandardMaterial({
+      map: signTex,
+      transparent: true,
+      emissive: 0xffffff,
+      emissiveIntensity: 1.6,
+      depthWrite: false,
+    });
+    const signMesh = new THREE.Mesh(new THREE.PlaneGeometry(3.6, 0.45), signMat);
+    signMesh.position.set(0, 2.65, 1.95); // Wall position
+    credenza.add(signMesh);
+
+    deskGroup.add(credenza);
+    this.scene.add(deskGroup);
+  }
+
+  // -----------------------------------------------------------------
+  // Luxury Architectural Botanical Planters (Indoor Greenery)
+  // -----------------------------------------------------------------
+  private buildBotanicalPlanters() {
+    // Shared Leaf Materials
+    const deepLeafMat = new THREE.MeshStandardMaterial({
+      color: 0x1f3c22, // Rich dark forest green
+      roughness: 0.32,
+      metalness: 0.04,
+      side: THREE.DoubleSide,
+    });
+    const freshLeafMat = new THREE.MeshStandardMaterial({
+      color: 0x2d5a32, // Fresh vibrant green
+      roughness: 0.28,
+      metalness: 0.06,
+      side: THREE.DoubleSide,
+    });
+    const stemMat = new THREE.MeshStandardMaterial({
+      color: 0x3d3024, // Organic bark brown
+      roughness: 0.85,
+    });
+    const soilMat = new THREE.MeshStandardMaterial({
+      color: 0x1d1712, // Dark potting loam
+      roughness: 0.95,
+    });
+    const brassMat = new THREE.MeshStandardMaterial({
+      color: 0xd4af37,
+      metalness: 0.88,
+      roughness: 0.30,
+    });
+
+    // ---------------------------------------------------------------
+    // Planter 1: Left Wall Front Corner (Fiddle Leaf Fig Tree)
+    // Symmetrical to the corner night lamp on the right side!
+    // ---------------------------------------------------------------
+    const figGroup = new THREE.Group();
+    figGroup.position.set(-5.90, 0, 1.85);
+
+    // Fluted white ceramic pot with brass collar
+    const pot1Mat = new THREE.MeshStandardMaterial({ color: 0xf2efe9, roughness: 0.35 });
+    const pot1Geom = new THREE.CylinderGeometry(0.28, 0.22, 0.65, 24);
+    const pot1 = new THREE.Mesh(pot1Geom, pot1Mat);
+    pot1.position.y = 0.65 / 2 + 0.08;
+    pot1.castShadow = true;
+    figGroup.add(pot1);
+
+    // Walnut wood cross stand
+    const standMat = new THREE.MeshStandardMaterial({ color: 0x3c2b1e, roughness: 0.6 });
+    for (let leg = 0; leg < 4; leg++) {
+      const angle = (leg * Math.PI) / 2;
+      const lx = Math.cos(angle) * 0.26;
+      const lz = Math.sin(angle) * 0.26;
+      const legMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.36, 12), standMat);
+      legMesh.position.set(lx, 0.18, lz);
+      figGroup.add(legMesh);
+    }
+    const pot1Soil = new THREE.Mesh(new THREE.CircleGeometry(0.26, 24), soilMat);
+    pot1Soil.rotation.x = -Math.PI / 2;
+    pot1Soil.position.y = 0.71;
+    figGroup.add(pot1Soil);
+
+    // Main multi-branch trunks
+    const trunk1 = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.032, 1.55, 12), stemMat);
+    trunk1.position.set(0, 0.71 + 1.55 / 2, 0);
+    trunk1.rotation.z = -0.05;
+    figGroup.add(trunk1);
+
+    const trunk2 = new THREE.Mesh(new THREE.CylinderGeometry(0.016, 0.024, 1.35, 10), stemMat);
+    trunk2.position.set(0.06, 0.71 + 1.35 / 2, 0.04);
+    trunk2.rotation.z = 0.08;
+    trunk2.rotation.x = 0.06;
+    figGroup.add(trunk2);
+
+    // Fiddle Leaf broad architectural leaves
+    const leafGeom = new THREE.PlaneGeometry(0.26, 0.40, 3, 3);
+    const leafCount = 18;
+    for (let l = 0; l < leafCount; l++) {
+      const fraction = l / leafCount;
+      const ly = 1.05 + fraction * 1.15;
+      const angle = l * 2.399; // Golden ratio angle
+      const leafDist = 0.12 + Math.sin(fraction * Math.PI) * 0.22;
+      const lx = Math.cos(angle) * leafDist;
+      const lz = Math.sin(angle) * leafDist;
+
+      const leaf = new THREE.Mesh(leafGeom, l % 2 === 0 ? deepLeafMat : freshLeafMat);
+      leaf.position.set(lx, ly, lz);
+      leaf.rotation.x = 0.45 + Math.sin(l) * 0.2;
+      leaf.rotation.y = angle + Math.PI / 2;
+      leaf.rotation.z = (Math.random() - 0.5) * 0.25;
+      leaf.scale.setScalar(0.75 + fraction * 0.45);
+      figGroup.add(leaf);
+    }
+    this.scene.add(figGroup);
+
+    // ---------------------------------------------------------------
+    // Planter 2: Next to Billing Desk (Tall Black Fluted Column Planter with Bird of Paradise)
+    // ---------------------------------------------------------------
+    const bopGroup = new THREE.Group();
+    bopGroup.position.set(2.15, 0, 9.35);
+
+    const pot2Mat = new THREE.MeshStandardMaterial({ color: 0x1e2025, roughness: 0.45, metalness: 0.3 });
+    const pot2Geom = new THREE.CylinderGeometry(0.24, 0.17, 0.88, 24);
+    const pot2 = new THREE.Mesh(pot2Geom, pot2Mat);
+    pot2.position.y = 0.88 / 2;
+    pot2.castShadow = true;
+    bopGroup.add(pot2);
+
+    const brassRing = new THREE.Mesh(new THREE.TorusGeometry(0.24, 0.008, 12, 32), brassMat);
+    brassRing.rotateX(Math.PI / 2);
+    brassRing.position.y = 0.88;
+    bopGroup.add(brassRing);
+
+    const pot2Soil = new THREE.Mesh(new THREE.CircleGeometry(0.23, 24), soilMat);
+    pot2Soil.rotation.x = -Math.PI / 2;
+    pot2Soil.position.y = 0.87;
+    bopGroup.add(pot2Soil);
+
+    // Upright Bird of Paradise leaves
+    const bopLeafGeom = new THREE.PlaneGeometry(0.18, 0.65, 2, 4);
+    const bopCount = 10;
+    for (let b = 0; b < bopCount; b++) {
+      const angle = (b * 2 * Math.PI) / bopCount + Math.sin(b) * 0.2;
+      const bDist = 0.08 + (b % 3) * 0.035;
+      const bx = Math.cos(angle) * bDist;
+      const bz = Math.sin(angle) * bDist;
+      const stemH = 0.6 + (b % 4) * 0.15;
+
+      const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.008, stemH, 8), stemMat);
+      stem.position.set(bx, 0.88 + stemH / 2, bz);
+      stem.rotation.z = Math.cos(angle) * 0.18;
+      stem.rotation.x = Math.sin(angle) * 0.18;
+      bopGroup.add(stem);
+
+      const leaf = new THREE.Mesh(bopLeafGeom, b % 2 === 0 ? deepLeafMat : freshLeafMat);
+      leaf.position.set(bx * 1.5, 0.88 + stemH + 0.28, bz * 1.5);
+      leaf.rotation.y = angle;
+      leaf.rotation.x = 0.25;
+      bopGroup.add(leaf);
+    }
+    this.scene.add(bopGroup);
+
+    // ---------------------------------------------------------------
+    // Planter 3: Right Back Corner past Denim Cupboard (Monstera Deliciosa)
+    // ---------------------------------------------------------------
+    const monGroup = new THREE.Group();
+    monGroup.position.set(6.05, 0, 7.55);
+
+    const pot3Mat = new THREE.MeshStandardMaterial({ color: 0xd8d2c4, roughness: 0.5 });
+    const pot3 = new THREE.Mesh(new THREE.CylinderGeometry(0.30, 0.25, 0.52, 24), pot3Mat);
+    pot3.position.y = 0.52 / 2;
+    pot3.castShadow = true;
+    monGroup.add(pot3);
+
+    const pot3Soil = new THREE.Mesh(new THREE.CircleGeometry(0.28, 24), soilMat);
+    pot3Soil.rotation.x = -Math.PI / 2;
+    pot3Soil.position.y = 0.51;
+    monGroup.add(pot3Soil);
+
+    // Monstera fan leaves
+    const monLeafGeom = new THREE.PlaneGeometry(0.34, 0.42, 3, 3);
+    for (let m = 0; m < 9; m++) {
+      const angle = (m * 2 * Math.PI) / 9 + 0.3;
+      const mDist = 0.14 + (m % 2) * 0.06;
+      const mx = Math.cos(angle) * mDist;
+      const mz = Math.sin(angle) * mDist;
+      const stemH = 0.45 + (m % 3) * 0.12;
+
+      const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.008, stemH, 8), stemMat);
+      stem.position.set(mx, 0.52 + stemH / 2, mz);
+      stem.rotation.z = Math.cos(angle) * 0.28;
+      stem.rotation.x = Math.sin(angle) * 0.28;
+      monGroup.add(stem);
+
+      const leaf = new THREE.Mesh(monLeafGeom, m % 2 === 0 ? deepLeafMat : freshLeafMat);
+      leaf.position.set(mx * 1.8, 0.52 + stemH + 0.15, mz * 1.8);
+      leaf.rotation.y = angle;
+      leaf.rotation.x = 0.55;
+      monGroup.add(leaf);
+    }
+    this.scene.add(monGroup);
+  }
+
+  // -----------------------------------------------------------------
+  // Luxury Central Lounge Seating Bench & Fashion Monograph Table
+  // -----------------------------------------------------------------
+  private buildLoungeSeating() {
+    const loungeGroup = new THREE.Group();
+    // Positioned in the central promenade between clothing rail and billing desk
+    loungeGroup.position.set(0, 0, 6.2);
+
+    // 1. Long Luxury Tufted Bench in Warm Cognac Saddle Leather
+    const leatherMat = new THREE.MeshStandardMaterial({
+      color: 0x6e4327, // Rich saddle cognac leather
+      roughness: 0.38,
+      metalness: 0.08,
+    });
+    const frameMat = new THREE.MeshStandardMaterial({
+      color: 0x1c1d22, // Dark obsidian metal frame
+      roughness: 0.30,
+      metalness: 0.85,
+    });
+    const brassMat = new THREE.MeshStandardMaterial({
+      color: 0xd4af37,
+      roughness: 0.25,
+      metalness: 0.88,
+    });
+
+    const benchW = 2.10;
+    const benchH = 0.44;
+    const benchD = 0.72;
+
+    // Cushion
+    const cushionH = 0.16;
+    const cushion = new THREE.Mesh(
+      new THREE.BoxGeometry(benchW, cushionH, benchD, 4, 2, 4),
+      leatherMat
+    );
+    cushion.position.y = benchH - cushionH / 2;
+    cushion.castShadow = true;
+    cushion.receiveShadow = true;
+    loungeGroup.add(cushion);
+
+    // Tufted button grooves across leather seat
+    const stitchMat = new THREE.MeshStandardMaterial({ color: 0x4a2a16, roughness: 0.6 });
+    [-0.6, 0, 0.6].forEach((tx) => {
+      const seam = new THREE.Mesh(new THREE.BoxGeometry(0.015, 0.01, benchD - 0.04), stitchMat);
+      seam.position.set(tx, benchH + 0.001, 0);
+      loungeGroup.add(seam);
+    });
+
+    // Minimalist sled legs (Loop legs at left and right ends)
+    [-benchW / 2 + 0.22, benchW / 2 - 0.22].forEach((lx) => {
+      const legGroup = new THREE.Group();
+      legGroup.position.set(lx, (benchH - cushionH) / 2, 0);
+
+      // Vertical posts
+      const p1 = new THREE.Mesh(new THREE.BoxGeometry(0.03, benchH - cushionH, 0.03), frameMat);
+      p1.position.z = -benchD / 2 + 0.08;
+      legGroup.add(p1);
+
+      const p2 = new THREE.Mesh(new THREE.BoxGeometry(0.03, benchH - cushionH, 0.03), frameMat);
+      p2.position.z = benchD / 2 - 0.08;
+      legGroup.add(p2);
+
+      // Floor runner bar
+      const bar = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.02, benchD - 0.16), frameMat);
+      bar.position.y = -(benchH - cushionH) / 2 + 0.01;
+      legGroup.add(bar);
+
+      // Brass feet caps
+      const foot1 = new THREE.Mesh(new THREE.BoxGeometry(0.032, 0.015, 0.032), brassMat);
+      foot1.position.set(0, -(benchH - cushionH) / 2 + 0.007, -benchD / 2 + 0.08);
+      legGroup.add(foot1);
+
+      const foot2 = new THREE.Mesh(new THREE.BoxGeometry(0.032, 0.015, 0.032), brassMat);
+      foot2.position.set(0, -(benchH - cushionH) / 2 + 0.007, benchD / 2 - 0.08);
+      legGroup.add(foot2);
+
+      loungeGroup.add(legGroup);
+    });
+
+    // 2. Low Architectural Marble Side Table with Fashion Monograph Book
+    const tableGroup = new THREE.Group();
+    tableGroup.position.set(1.55, 0, 0); // Beside the bench
+
+    const marbleMat = new THREE.MeshStandardMaterial({
+      color: 0xf5f3ee,
+      roughness: 0.18,
+      metalness: 0.10,
+    });
+    const tableTop = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.28, 0.035, 32), marbleMat);
+    tableTop.position.y = 0.46;
+    tableTop.castShadow = true;
+    tableGroup.add(tableTop);
+
+    const tableStem = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.022, 0.44, 16), brassMat);
+    tableStem.position.y = 0.22;
+    tableGroup.add(tableStem);
+
+    const tableBase = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.24, 0.025, 32), frameMat);
+    tableBase.position.y = 0.0125;
+    tableGroup.add(tableBase);
+
+    // Fashion Monograph Art Book on table
+    const bookMat = new THREE.MeshStandardMaterial({ color: 0x111114, roughness: 0.35 });
+    const book = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.028, 0.32), bookMat);
+    book.position.set(0, 0.46 + 0.014 + 0.0175, 0);
+    book.rotation.y = 0.35;
+    tableGroup.add(book);
+
+    // Gold embossed title stripe on book
+    const goldStripe = new THREE.Mesh(new THREE.PlaneGeometry(0.20, 0.04), brassMat);
+    goldStripe.rotation.x = -Math.PI / 2;
+    goldStripe.rotation.z = 0.35;
+    goldStripe.position.set(0, 0.46 + 0.032 + 0.0175, 0);
+    tableGroup.add(goldStripe);
+
+    loungeGroup.add(tableGroup);
+    this.scene.add(loungeGroup);
   }
 
   // -----------------------------------------------------------------
