@@ -174,6 +174,14 @@ export class ShowroomScene {
   private ringPointLights: THREE.PointLight[] = [];
   private ringEmissiveMaterials: THREE.MeshStandardMaterial[] = [];
 
+  // Interactive Corner Night Lamp
+  public isNightLampOn = true;
+  private nightLampLight: THREE.PointLight | null = null;
+  private nightLampShadeMat: THREE.MeshStandardMaterial | null = null;
+  private nightLampBulbMat: THREE.MeshBasicMaterial | null = null;
+  private nightLampFloorGlowMat: THREE.MeshBasicMaterial | null = null;
+  private nightLampPullChain: THREE.Group | null = null;
+
   // Denim Cupboard & Unfolding Animation
   public isDenimUnfolded = false;
   private activeUnfoldedDenim: DenimCubbyItem | null = null;
@@ -233,6 +241,7 @@ export class ShowroomScene {
     this.buildWallArtGallery();
     this.buildWoodenCubbyAndBags();
     this.buildWoodenDenimCupboard();
+    this.buildCornerNightLamp();
     // (Pedestals removed as requested)
 
     // 5. Setup Listeners & Start Loop
@@ -1835,6 +1844,250 @@ export class ShowroomScene {
   }
 
   // -----------------------------------------------------------------
+  // Interactive Luxury Corner Floor Night Lamp (Near Denim Shelf)
+  // -----------------------------------------------------------------
+  private buildCornerNightLamp() {
+    const lampGroup = new THREE.Group();
+    // Positioned in the corner to the left of the denim cupboard
+    lampGroup.position.set(6.05, 0, 1.95);
+
+    // 1. Heavy Luxury Metallic Weighted Base
+    const baseMat = new THREE.MeshStandardMaterial({
+      color: 0x1f1f23,
+      metalness: 0.85,
+      roughness: 0.28,
+    });
+    const brassMat = new THREE.MeshStandardMaterial({
+      color: 0xd4af37, // Elegant brushed warm champagne brass
+      metalness: 0.88,
+      roughness: 0.32,
+    });
+
+    // Circular weighted base
+    const baseGeom = new THREE.CylinderGeometry(0.22, 0.24, 0.045, 32);
+    const baseMesh = new THREE.Mesh(baseGeom, baseMat);
+    baseMesh.position.y = 0.0225;
+    baseMesh.castShadow = true;
+    baseMesh.receiveShadow = true;
+    lampGroup.add(baseMesh);
+
+    // Brass accent ring around base
+    const baseRingGeom = new THREE.TorusGeometry(0.22, 0.012, 16, 32);
+    baseRingGeom.rotateX(Math.PI / 2);
+    const baseRing = new THREE.Mesh(baseRingGeom, brassMat);
+    baseRing.position.y = 0.045;
+    lampGroup.add(baseRing);
+
+    // 2. Slender Architectural Stem / Pole
+    const stemGeom = new THREE.CylinderGeometry(0.014, 0.014, 1.48, 24);
+    const stemMesh = new THREE.Mesh(stemGeom, baseMat);
+    stemMesh.position.y = 0.045 + 1.48 / 2;
+    stemMesh.castShadow = true;
+    lampGroup.add(stemMesh);
+
+    // Brass collars on stem (lower, middle, upper)
+    const collarGeom = new THREE.CylinderGeometry(0.022, 0.022, 0.035, 20);
+    const collar1 = new THREE.Mesh(collarGeom, brassMat);
+    collar1.position.y = 0.14;
+    lampGroup.add(collar1);
+
+    const collar2 = new THREE.Mesh(collarGeom, brassMat);
+    collar2.position.y = 0.88;
+    lampGroup.add(collar2);
+
+    const collar3 = new THREE.Mesh(new THREE.CylinderGeometry(0.028, 0.02, 0.06, 20), brassMat);
+    collar3.position.y = 1.51;
+    lampGroup.add(collar3);
+
+    // 3. Socket & Light Bulb
+    this.nightLampBulbMat = new THREE.MeshBasicMaterial({
+      color: 0xfff3e0,
+    });
+    const bulbGeom = new THREE.SphereGeometry(0.05, 20, 20);
+    const bulbMesh = new THREE.Mesh(bulbGeom, this.nightLampBulbMat);
+    bulbMesh.position.y = 1.62;
+    lampGroup.add(bulbMesh);
+
+    // 4. Elegant Translucent Lampshade (Tapered Cylinder)
+    this.nightLampShadeMat = new THREE.MeshStandardMaterial({
+      color: 0xf3e5d0,
+      emissive: 0xff9922,
+      emissiveIntensity: 2.4,
+      roughness: 0.60,
+      metalness: 0.05,
+      side: THREE.DoubleSide,
+    });
+    const shadeGeom = new THREE.CylinderGeometry(0.18, 0.25, 0.36, 36, 1, true);
+    const shadeMesh = new THREE.Mesh(shadeGeom, this.nightLampShadeMat);
+    shadeMesh.position.y = 1.66;
+    shadeMesh.castShadow = false;
+    lampGroup.add(shadeMesh);
+
+    // Brass trim rings at top and bottom of lampshade
+    const shadeTopRingGeom = new THREE.TorusGeometry(0.18, 0.008, 12, 36);
+    shadeTopRingGeom.rotateX(Math.PI / 2);
+    const shadeTopRing = new THREE.Mesh(shadeTopRingGeom, brassMat);
+    shadeTopRing.position.y = 1.66 + 0.18;
+    lampGroup.add(shadeTopRing);
+
+    const shadeBotRingGeom = new THREE.TorusGeometry(0.25, 0.008, 12, 36);
+    shadeBotRingGeom.rotateX(Math.PI / 2);
+    const shadeBotRing = new THREE.Mesh(shadeBotRingGeom, brassMat);
+    shadeBotRing.position.y = 1.66 - 0.18;
+    lampGroup.add(shadeBotRing);
+
+    // Decorative top finial
+    const finialGeom = new THREE.SphereGeometry(0.022, 16, 16);
+    const finialMesh = new THREE.Mesh(finialGeom, brassMat);
+    finialMesh.position.y = 1.66 + 0.20;
+    lampGroup.add(finialMesh);
+
+    // 5. Delicate Interactive Pull Chain
+    const chainGroup = new THREE.Group();
+    chainGroup.position.set(0.08, 1.50, 0);
+    const chainCordGeom = new THREE.CylinderGeometry(0.0025, 0.0025, 0.22, 8);
+    const chainCord = new THREE.Mesh(chainCordGeom, brassMat);
+    chainCord.position.y = -0.11;
+    chainGroup.add(chainCord);
+
+    const fobGeom = new THREE.ConeGeometry(0.012, 0.035, 12);
+    fobGeom.rotateX(Math.PI);
+    const fobMesh = new THREE.Mesh(fobGeom, brassMat);
+    fobMesh.position.y = -0.23;
+    chainGroup.add(fobMesh);
+    this.nightLampPullChain = chainGroup;
+    lampGroup.add(chainGroup);
+
+    // 6. Point Light Source (Warm 2700K Glow)
+    this.nightLampLight = new THREE.PointLight(0xffa834, 3.2, 8.0, 1.4);
+    this.nightLampLight.position.set(0, 1.62, 0);
+    this.nightLampLight.castShadow = true;
+    this.nightLampLight.shadow.bias = -0.002;
+    this.nightLampLight.shadow.mapSize.width = 512;
+    this.nightLampLight.shadow.mapSize.height = 512;
+    lampGroup.add(this.nightLampLight);
+
+    // 7. Ambient Floor Light Pool (Warm Radial Falloff on Floor)
+    const glowCanvas = document.createElement('canvas');
+    glowCanvas.width = 256;
+    glowCanvas.height = 256;
+    const gctx = glowCanvas.getContext('2d')!;
+    const grad = gctx.createRadialGradient(128, 128, 10, 128, 128, 128);
+    grad.addColorStop(0, 'rgba(255, 185, 95, 0.65)');
+    grad.addColorStop(0.35, 'rgba(255, 170, 75, 0.32)');
+    grad.addColorStop(0.7, 'rgba(255, 150, 50, 0.09)');
+    grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    gctx.fillStyle = grad;
+    gctx.fillRect(0, 0, 256, 256);
+
+    const glowTex = new THREE.CanvasTexture(glowCanvas);
+    this.nightLampFloorGlowMat = new THREE.MeshBasicMaterial({
+      map: glowTex,
+      transparent: true,
+      opacity: 0.70,
+      depthWrite: false,
+    });
+    const floorGlowMesh = new THREE.Mesh(
+      new THREE.PlaneGeometry(2.8, 2.8),
+      this.nightLampFloorGlowMat
+    );
+    floorGlowMesh.rotation.x = -Math.PI / 2;
+    floorGlowMesh.position.y = 0.003;
+    lampGroup.add(floorGlowMesh);
+
+    // 8. Hit Box for Click & Hover Interaction (Generous invisible cylinder around lamp)
+    const hitBoxGeom = new THREE.CylinderGeometry(0.38, 0.38, 1.95, 16);
+    const hitBoxMat = new THREE.MeshBasicMaterial({
+      transparent: true,
+      opacity: 0,
+      depthWrite: false,
+    });
+    const hitBox = new THREE.Mesh(hitBoxGeom, hitBoxMat);
+    hitBox.position.y = 1.95 / 2;
+    hitBox.userData = { isNightLamp: true };
+    lampGroup.add(hitBox);
+    this.interactiveMeshes.push(hitBox);
+
+    this.scene.add(lampGroup);
+  }
+
+  public toggleNightLamp() {
+    this.isNightLampOn = !this.isNightLampOn;
+    const targetLightIntensity = this.isNightLampOn ? 3.2 : 0;
+    const targetEmissive = this.isNightLampOn ? 2.4 : 0.03;
+    const targetGlowOpacity = this.isNightLampOn ? 0.70 : 0;
+
+    if (this.nightLampLight) {
+      gsap.to(this.nightLampLight, {
+        intensity: targetLightIntensity,
+        duration: 0.35,
+        ease: 'power2.out',
+      });
+    }
+
+    if (this.nightLampShadeMat) {
+      gsap.to(this.nightLampShadeMat, {
+        emissiveIntensity: targetEmissive,
+        duration: 0.35,
+        ease: 'power2.out',
+      });
+      this.nightLampShadeMat.color.setHex(this.isNightLampOn ? 0xf3e5d0 : 0x4a453f);
+    }
+
+    if (this.nightLampBulbMat) {
+      this.nightLampBulbMat.color.setHex(this.isNightLampOn ? 0xfff3e0 : 0x222222);
+    }
+
+    if (this.nightLampFloorGlowMat) {
+      gsap.to(this.nightLampFloorGlowMat, {
+        opacity: targetGlowOpacity,
+        duration: 0.35,
+        ease: 'power2.out',
+      });
+    }
+
+    // Pull chain tactile wobble animation
+    if (this.nightLampPullChain) {
+      gsap.killTweensOf(this.nightLampPullChain.rotation);
+      gsap.timeline()
+        .to(this.nightLampPullChain.position, { y: 1.46, duration: 0.1, ease: 'power1.out' })
+        .to(this.nightLampPullChain.position, { y: 1.50, duration: 0.25, ease: 'bounce.out' });
+      gsap.fromTo(
+        this.nightLampPullChain.rotation,
+        { z: 0.22 },
+        { z: 0, duration: 0.65, ease: 'elastic.out(1, 0.4)' }
+      );
+    }
+
+    // Tactile acoustic switch click
+    this.playSwitchSound();
+  }
+
+  private playSwitchSound() {
+    try {
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(this.isNightLampOn ? 920 : 540, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(this.isNightLampOn ? 1400 : 280, ctx.currentTime + 0.035);
+
+      gain.gain.setValueAtTime(0.09, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.045);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.05);
+    } catch {
+      // Audio context restricted or unavailable
+    }
+  }
+
+  // -----------------------------------------------------------------
   // CAPS & FOOTWEAR DISPLAYS (On Right Wall)
   // -----------------------------------------------------------------
   private async buildCapsAndShoesDisplays() {
@@ -2069,6 +2322,12 @@ export class ShowroomScene {
       if (intersects.length > 0) {
         const hit = intersects[0].object;
 
+        // Check if user clicked the corner night lamp!
+        if (hit.userData && hit.userData.isNightLamp) {
+          this.toggleNightLamp();
+          return;
+        }
+
         // Check if user clicked a denim cubby compartment!
         if (hit.userData && hit.userData.isDenimCubby && hit.userData.denimItem) {
           this.unfoldDenimItem(hit.userData.denimItem);
@@ -2171,6 +2430,18 @@ export class ShowroomScene {
 
     if (intersects.length > 0) {
       const hit = intersects[0].object;
+
+      // Night lamp hover feedback
+      if (hit.userData && hit.userData.isNightLamp) {
+        this.container.style.cursor = 'pointer';
+        this.clearDenimCubbyHover();
+        if (this.hoveredProduct) {
+          this.hoveredProduct = null;
+          this.callbacks.onProductHover(null);
+          this.reset3DHoverSimulation();
+        }
+        return;
+      }
 
       // Denim cubby hover feedback
       if (hit.userData && hit.userData.isDenimCubby && hit.userData.denimItem) {
