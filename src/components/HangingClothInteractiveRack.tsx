@@ -83,6 +83,14 @@ export const HANGING_GARMENTS_LIST: HangingGarmentItem[] = [
     desc: "Botanical Pigment Wash • Structured Warm Silhouette",
     price: "$199.00",
     priceNum: 16499
+  },
+  {
+    id: 10,
+    title: "DISTRESSED VINTAGE DENIM JACKET",
+    shortName: "Denim Jacket",
+    desc: "Light Indigo Wash • 14oz Japanese Rigid Denim • Distressed Detailing & Brass Hardware",
+    price: "$199.00",
+    priceNum: 18999
   }
 ];
 

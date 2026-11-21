@@ -999,6 +999,15 @@ export class ShowroomScene {
         sideAspect: 0.34,
         frontAspect: 0.75,
       },
+      {
+        id: 10,
+        title: "DISTRESSED VINTAGE DENIM JACKET",
+        shortName: "Denim Jacket",
+        desc: "Light Indigo Wash • 14oz Japanese Rigid Denim • Distressed Detailing & Brass Hardware",
+        price: 18999,
+        sideAspect: 0.32,
+        frontAspect: 0.81,
+      },
     ];
 
     const textureLoader = new THREE.TextureLoader();
