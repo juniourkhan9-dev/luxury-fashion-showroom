@@ -2880,9 +2880,10 @@ export class ShowroomScene {
           hasDragged = true;
         }
         this.rotateCamera(dx, dy);
+      } else {
+        // Only run hover raycaster when idle (prevents frame drops during camera movement/drag!)
+        this.checkRaycastHover();
       }
-
-      this.checkRaycastHover();
     };
 
     const onPointerUp = () => {
@@ -3125,12 +3126,13 @@ export class ShowroomScene {
   }
 
   // -----------------------------------------------------------------
-  // Smooth Physics Movement: Slower, Gentle, Controlled Luxury Pace
+  // Smooth Physics Movement: Fluid, Jitter-Free, Zero-Stutter Walking
   // -----------------------------------------------------------------
   private updateMovement(dt: number) {
-    // 1. Smooth Camera Look Lerp
-    this.euler.y = THREE.MathUtils.lerp(this.euler.y, this.targetEuler.y, Math.min(1, dt * 14));
-    this.euler.x = THREE.MathUtils.lerp(this.euler.x, this.targetEuler.x, Math.min(1, dt * 14));
+    // 1. Silky Smooth, Hitch-Free Camera Look (Framerate-independent exponential filter)
+    const lookFactor = 1 - Math.exp(-24 * dt);
+    this.euler.y = THREE.MathUtils.lerp(this.euler.y, this.targetEuler.y, lookFactor);
+    this.euler.x = THREE.MathUtils.lerp(this.euler.x, this.targetEuler.x, lookFactor);
     this.camera.quaternion.setFromEuler(this.euler);
 
     // 2. Exact Forward & Right Horizontal Vectors
@@ -3141,38 +3143,51 @@ export class ShowroomScene {
 
     const right = new THREE.Vector3(-forward.z, 0, forward.x).normalize();
 
-    // 3. Gentle Acceleration (slower and comfortable)
-    const accel = this.walkSpeed * 5.0;
+    // 3. Normalized input direction vector (prevents diagonal speed boost and jerky starts)
+    const inputDir = new THREE.Vector3();
+    if (this.moveForward) inputDir.add(forward);
+    if (this.moveBackward) inputDir.sub(forward);
+    if (this.moveRight) inputDir.add(right);
+    if (this.moveLeft) inputDir.sub(right);
 
-    if (this.moveForward) {
-      this.velocity.addScaledVector(forward, accel * dt);
-    }
-    if (this.moveBackward) {
-      this.velocity.addScaledVector(forward, -accel * dt);
-    }
-    if (this.moveRight) {
-      this.velocity.addScaledVector(right, accel * dt);
-    }
-    if (this.moveLeft) {
-      this.velocity.addScaledVector(right, -accel * dt);
+    if (inputDir.lengthSq() > 0) {
+      inputDir.normalize();
     }
 
-    // 4. Smooth Damping (decay velocity smoothly without sliding)
-    const damping = Math.pow(0.008, dt);
-    this.velocity.x *= damping;
-    this.velocity.z *= damping;
+    const targetVelX = inputDir.x * this.walkSpeed;
+    const targetVelZ = inputDir.z * this.walkSpeed;
+
+    // 4. Smooth, Jitter-Free Velocity Lerp (Responsive yet soft acceleration & stopping)
+    const moveFactor = 1 - Math.exp(-14 * dt);
+    this.velocity.x = THREE.MathUtils.lerp(this.velocity.x, targetVelX, moveFactor);
+    this.velocity.z = THREE.MathUtils.lerp(this.velocity.z, targetVelZ, moveFactor);
 
     // 5. Apply Movement
-    this.camera.position.addScaledVector(this.velocity, dt);
+    this.camera.position.x += this.velocity.x * dt;
+    this.camera.position.z += this.velocity.z * dt;
 
-    // Showroom Boundaries (Prevent walking outside the boutique room)
-    const minX = -5.8;
-    const maxX = 5.8;
-    const minZ = 1.0;
-    const maxZ = 7.5;
+    // Showroom Boundaries with Velocity Reflection (Eliminates wall vibrating/sticking hitch!)
+    const minX = -6.0;
+    const maxX = 6.0;
+    const minZ = 0.8;
+    const maxZ = 10.2; // Extended so user can freely explore all the way to the billing desk!
 
-    this.camera.position.x = Math.max(minX, Math.min(maxX, this.camera.position.x));
-    this.camera.position.z = Math.max(minZ, Math.min(maxZ, this.camera.position.z));
+    if (this.camera.position.x <= minX) {
+      this.camera.position.x = minX;
+      this.velocity.x = Math.max(0, this.velocity.x);
+    } else if (this.camera.position.x >= maxX) {
+      this.camera.position.x = maxX;
+      this.velocity.x = Math.min(0, this.velocity.x);
+    }
+
+    if (this.camera.position.z <= minZ) {
+      this.camera.position.z = minZ;
+      this.velocity.z = Math.max(0, this.velocity.z);
+    } else if (this.camera.position.z >= maxZ) {
+      this.camera.position.z = maxZ;
+      this.velocity.z = Math.min(0, this.velocity.z);
+    }
+
     this.camera.position.y = this.eyeHeight;
   }
 
@@ -3183,7 +3198,8 @@ export class ShowroomScene {
     if (this.isDisposed) return;
     this.animationFrameId = requestAnimationFrame(this.animate);
 
-    const dt = Math.min(this.clock.getDelta(), 0.1);
+    // Clamp dt between 0.001 and 0.05 (prevents micro-stutter from sudden frame delay)
+    const dt = Math.min(this.clock.getDelta(), 0.05);
 
     // 1. Camera Fast Travel Animation
     if (this.isTransitioning) {
