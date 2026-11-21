@@ -36,10 +36,15 @@ export function App() {
   const containerRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<ShowroomScene | null>(null);
 
+  // Auto-detect mobile device for optimized performance & buttery 60fps
+  const isMobile = typeof window !== 'undefined' && (
+    /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || window.innerWidth < 768
+  );
+
   // Application State
   const [hasEntered, setHasEntered] = useState(true);
   const [fps, setFps] = useState(60);
-  const [quality, setQuality] = useState<'high' | 'medium' | 'low'>('high');
+  const [quality, setQuality] = useState<'high' | 'medium' | 'low'>(isMobile ? 'medium' : 'high');
 
   // Pointer lock state tracking
   const [isPointerLocked, setIsPointerLocked] = useState(false);
@@ -252,9 +257,9 @@ export function App() {
   };
 
   return (
-    <div className="relative w-screen h-screen overflow-hidden bg-[#1c1e26] text-white select-none">
+    <div className="relative w-screen h-screen overflow-hidden bg-[#1c1e26] text-white select-none touch-none">
       {/* 3D WebGL Canvas Viewport */}
-      <div ref={containerRef} className="absolute inset-0 w-full h-full" />
+      <div ref={containerRef} className="absolute inset-0 w-full h-full touch-none select-none" />
 
       {/* NIKE Virtual Store Header */}
       <ShowroomHeader
@@ -270,7 +275,11 @@ export function App() {
         onClearBag={handleClearBag}
       />
 
-      {/* Navigation Dock removed as requested */}
+      {/* On-Screen Touch / Mouse Walk Navigation */}
+      <WalkController
+        onStartMove={handleStartMove}
+        onStopMove={handleStopMove}
+      />
 
       {/* Product Details Drawer (For other 3D items: Bags, Shoes, Caps) */}
       <ProductDrawer

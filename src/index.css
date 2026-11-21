@@ -7,6 +7,13 @@
     --font-display: 'Syncopate', sans-serif;
   }
 
+  html, body {
+    touch-action: none;
+    overscroll-behavior: none;
+    -webkit-touch-callout: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
   body {
     font-family: var(--font-sans);
     background-color: #08080a;

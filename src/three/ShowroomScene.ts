@@ -231,11 +231,17 @@ export class ShowroomScene {
       alpha: false,
     });
     this.renderer.setSize(container.clientWidth, container.clientHeight);
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.25));
+    const isMobile = typeof window !== 'undefined' && (
+      /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || window.innerWidth < 768
+    );
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, isMobile ? 1.15 : 1.35));
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFShadowMap;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 1.48;
+
+    this.renderer.domElement.style.touchAction = 'none';
+    container.style.touchAction = 'none';
 
     container.innerHTML = '';
     container.appendChild(this.renderer.domElement);
@@ -3309,7 +3315,7 @@ export class ShowroomScene {
     document.addEventListener('pointerlockchange', onPointerLockChange);
     document.addEventListener('pointerlockerror', onPointerLockError);
 
-    // Drag-to-Look Mouse Controls
+    // Drag-to-Look Controls (Mouse + Touch)
     let isMouseDown = false;
     let prevMouseX = 0;
     let prevMouseY = 0;
@@ -3317,7 +3323,20 @@ export class ShowroomScene {
     let startPointerY = 0;
     let hasDragged = false;
 
+    // Dedicated Touch State for Mobile Phones
+    let touchStartDist = 0;
+    let prevTouchX = 0;
+    let prevTouchY = 0;
+    let touchStartCoords = { x: 0, y: 0 };
+    let touchStartTime = 0;
+    let isTouchActive = false;
+    let touchHasMoved = false;
+    let lastTapTime = 0;
+
     const onPointerDown = (e: PointerEvent) => {
+      // Ignore touch in pointer events to let native multi-touch handlers handle it with zero conflict!
+      if (e.pointerType === 'touch') return;
+
       const target = e.target as HTMLElement;
       if (target.closest('button, nav, header, aside, .glass-panel')) {
         return;
@@ -3334,6 +3353,8 @@ export class ShowroomScene {
     };
 
     const onPointerMove = (e: PointerEvent) => {
+      if (e.pointerType === 'touch') return;
+
       const rect = this.container.getBoundingClientRect();
       this.mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
       this.mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
@@ -3357,11 +3378,104 @@ export class ShowroomScene {
       }
     };
 
-    const onPointerUp = () => {
+    const onPointerUp = (e: PointerEvent) => {
+      if (e.pointerType === 'touch') return;
       isMouseDown = false;
     };
 
-    // Canvas Click: Garment or Bag selection
+    // Mobile Multi-Touch Handlers (Smooth 360 Swipe, 2-Finger Pinch to Walk, Tap to Select)
+    const onTouchStart = (e: TouchEvent) => {
+      const target = e.target as HTMLElement;
+      if (target.closest('button, nav, header, aside, .glass-panel, input, [role="button"]')) {
+        return;
+      }
+
+      if (e.touches.length === 1) {
+        isTouchActive = true;
+        touchHasMoved = false;
+        prevTouchX = e.touches[0].clientX;
+        prevTouchY = e.touches[0].clientY;
+        touchStartCoords = { x: prevTouchX, y: prevTouchY };
+        touchStartTime = performance.now();
+      } else if (e.touches.length === 2) {
+        isTouchActive = false;
+        const dx = e.touches[0].clientX - e.touches[1].clientX;
+        const dy = e.touches[0].clientY - e.touches[1].clientY;
+        touchStartDist = Math.hypot(dx, dy);
+        prevTouchY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+      }
+    };
+
+    const onTouchMove = (e: TouchEvent) => {
+      if (e.touches.length === 1 && isTouchActive) {
+        const touch = e.touches[0];
+        const dx = touch.clientX - prevTouchX;
+        const dy = touch.clientY - prevTouchY;
+        prevTouchX = touch.clientX;
+        prevTouchY = touch.clientY;
+
+        if (Math.hypot(touch.clientX - touchStartCoords.x, touch.clientY - touchStartCoords.y) > 6) {
+          touchHasMoved = true;
+        }
+
+        // Smooth mobile camera 360 look
+        this.rotateCamera(dx, dy);
+      } else if (e.touches.length === 2) {
+        // 2-Finger Pinch to Walk Forward / Backward & Vertical Swipe Walk
+        const dx = e.touches[0].clientX - e.touches[1].clientX;
+        const dy = e.touches[0].clientY - e.touches[1].clientY;
+        const currentDist = Math.hypot(dx, dy);
+        const distDelta = currentDist - touchStartDist;
+        touchStartDist = currentDist;
+
+        const midY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+        const swipeDelta = midY - prevTouchY;
+        prevTouchY = midY;
+
+        const cameraLookDir = new THREE.Vector3();
+        this.camera.getWorldDirection(cameraLookDir);
+        cameraLookDir.y = 0;
+        cameraLookDir.normalize();
+
+        let impulse = 0;
+        if (Math.abs(distDelta) > 1.2) {
+          impulse += distDelta * 0.012;
+        }
+        if (Math.abs(swipeDelta) > 1.2) {
+          impulse -= swipeDelta * 0.012;
+        }
+        if (impulse !== 0) {
+          this.velocity.addScaledVector(cameraLookDir, impulse);
+        }
+      }
+    };
+
+    const onTouchEnd = (e: TouchEvent) => {
+      if (e.touches.length === 0) {
+        isTouchActive = false;
+        const now = performance.now();
+        // Check for Tap interaction (if finger didn't drag)
+        if (!touchHasMoved && (now - touchStartTime < 350)) {
+          // Double-tap forward walk impulse check
+          if (now - lastTapTime < 300) {
+            const cameraLookDir = new THREE.Vector3();
+            this.camera.getWorldDirection(cameraLookDir);
+            cameraLookDir.y = 0;
+            cameraLookDir.normalize();
+            this.velocity.addScaledVector(cameraLookDir, 1.2);
+          } else {
+            // Single tap raycasting
+            const rect = this.container.getBoundingClientRect();
+            this.mouse.x = ((touchStartCoords.x - rect.left) / rect.width) * 2 - 1;
+            this.mouse.y = -((touchStartCoords.y - rect.top) / rect.height) * 2 + 1;
+            this.triggerInteractiveTap();
+          }
+          lastTapTime = now;
+        }
+      }
+    };
+
+    // Canvas Click: Garment or Bag selection (Desktop Mouse)
     const onCanvasClick = (e: MouseEvent) => {
       // If user was dragging to rotate camera, ignore click!
       if (hasDragged) {
@@ -3374,56 +3488,23 @@ export class ShowroomScene {
         return;
       }
 
-      // If a denim item is currently unfolded in front of camera, any canvas click folds it back!
-      if (this.isDenimUnfolded) {
-        this.foldBackDenim();
-        return;
-      }
-
       const rect = this.container.getBoundingClientRect();
       this.mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
       this.mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
 
-      this.raycaster.setFromCamera(this.mouse, this.camera);
-      const intersects = this.raycaster.intersectObjects(this.interactiveMeshes, false);
-
-      if (intersects.length > 0) {
-        const hit = intersects[0].object;
-
-        // Check if user clicked the corner night lamp!
-        if (hit.userData && hit.userData.isNightLamp) {
-          this.toggleNightLamp();
-          return;
-        }
-
-        // Check if user clicked the grand glass gate!
-        if (hit.userData && hit.userData.isGlassGate) {
-          this.toggleGlassGate();
-          return;
-        }
-
-        // Check if user clicked a denim cubby compartment!
-        if (hit.userData && hit.userData.isDenimCubby && hit.userData.denimItem) {
-          this.unfoldDenimItem(hit.userData.denimItem);
-          return;
-        }
-
-        if (hit.userData && hit.userData.product) {
-          const product = hit.userData.product as Product;
-
-          // For clothing rail garments: focus/flip on rail only, DO NOT auto-open drawer!
-          if (product.category === 'Clothing' && product.railIndex !== undefined) {
-            this.focusRailGarment(product.railIndex);
-            return;
-          }
-        }
-      }
+      this.triggerInteractiveTap();
     };
 
     this.container.addEventListener('pointerdown', onPointerDown);
     window.addEventListener('pointermove', onPointerMove);
     window.addEventListener('pointerup', onPointerUp);
     this.container.addEventListener('click', onCanvasClick);
+
+    // Native Touch Listeners
+    this.container.addEventListener('touchstart', onTouchStart, { passive: true });
+    window.addEventListener('touchmove', onTouchMove, { passive: true });
+    window.addEventListener('touchend', onTouchEnd, { passive: true });
+    window.addEventListener('touchcancel', onTouchEnd, { passive: true });
 
     const onResize = () => {
       if (this.isDisposed) return;
@@ -3452,9 +3533,52 @@ export class ShowroomScene {
     this.callbacks.onPointerLockChange?.(false);
   }
 
+  private triggerInteractiveTap() {
+    if (this.isDenimUnfolded) {
+      this.foldBackDenim();
+      return;
+    }
+
+    this.raycaster.setFromCamera(this.mouse, this.camera);
+    const intersects = this.raycaster.intersectObjects(this.interactiveMeshes, false);
+
+    if (intersects.length > 0) {
+      const hit = intersects[0].object;
+
+      // Check if user clicked/tapped the corner night lamp!
+      if (hit.userData && hit.userData.isNightLamp) {
+        this.toggleNightLamp();
+        return;
+      }
+
+      // Check if user clicked/tapped the grand glass gate!
+      if (hit.userData && hit.userData.isGlassGate) {
+        this.toggleGlassGate();
+        return;
+      }
+
+      // Check if user clicked/tapped a denim cubby compartment!
+      if (hit.userData && hit.userData.isDenimCubby && hit.userData.denimItem) {
+        this.unfoldDenimItem(hit.userData.denimItem);
+        return;
+      }
+
+      if (hit.userData && hit.userData.product) {
+        const product = hit.userData.product as Product;
+        if (product.category === 'Clothing' && product.railIndex !== undefined) {
+          this.focusRailGarment(product.railIndex);
+          return;
+        }
+      }
+    }
+  }
+
   public rotateCamera(deltaX: number, deltaY: number) {
     if (this.isTransitioning) return;
-    const sensitivity = 0.0022;
+    const isMobile = typeof window !== 'undefined' && (
+      /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || window.innerWidth < 768
+    );
+    const sensitivity = isMobile ? 0.0032 : 0.0022;
     this.targetEuler.y -= deltaX * sensitivity;
     this.targetEuler.x -= deltaY * sensitivity;
     this.targetEuler.x = Math.max(-Math.PI / 2.3, Math.min(Math.PI / 2.3, this.targetEuler.x));
@@ -3781,17 +3905,20 @@ export class ShowroomScene {
   };
 
   public setQuality(quality: 'high' | 'medium' | 'low') {
+    const isMobile = typeof window !== 'undefined' && (
+      /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || window.innerWidth < 768
+    );
     if (quality === 'low') {
       this.renderer.setPixelRatio(1);
       this.renderer.shadowMap.enabled = false;
     } else if (quality === 'medium') {
-      this.renderer.setPixelRatio(1.25);
+      this.renderer.setPixelRatio(isMobile ? 1.0 : 1.25);
       this.renderer.shadowMap.enabled = true;
       this.renderer.shadowMap.type = THREE.PCFShadowMap;
     } else {
-      this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      this.renderer.setPixelRatio(isMobile ? 1.20 : Math.min(window.devicePixelRatio, 1.75));
       this.renderer.shadowMap.enabled = true;
-      this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      this.renderer.shadowMap.type = isMobile ? THREE.PCFShadowMap : THREE.PCFSoftShadowMap;
     }
   }
 
