@@ -257,6 +257,8 @@ export class ShowroomScene {
     this.buildCornerNightLamp();
     this.buildBillingDesk();
     this.buildBotanicalPlanters();
+    this.buildRightCornerLight();
+    this.buildFreestandingGarmentRack();
     this.buildLoungeSeating();
     this.buildGlassGate();
     // (Pedestals removed as requested)
@@ -2675,46 +2677,336 @@ export class ShowroomScene {
       bopGroup.add(leaf);
     }
     this.scene.add(bopGroup);
+  }
 
-    // ---------------------------------------------------------------
-    // Planter 3: Right Back Corner past Denim Cupboard (Monstera Deliciosa)
-    // ---------------------------------------------------------------
-    const monGroup = new THREE.Group();
-    monGroup.position.set(6.05, 0, 7.55);
+  // -----------------------------------------------------------------
+  // Right Rear Architectural Corner Light Column / Luminaire Totem
+  // -----------------------------------------------------------------
+  private buildRightCornerLight() {
+    const lightGroup = new THREE.Group();
+    // Positioned in the corner past the denim cupboard and hanging rack
+    lightGroup.position.set(6.65, 0, 9.85);
 
-    const pot3Mat = new THREE.MeshStandardMaterial({ color: 0xd8d2c4, roughness: 0.5 });
-    const pot3 = new THREE.Mesh(new THREE.CylinderGeometry(0.30, 0.25, 0.52, 24), pot3Mat);
-    pot3.position.y = 0.52 / 2;
-    pot3.castShadow = true;
-    monGroup.add(pot3);
+    // 1. Heavy brushed brass weighted floor base
+    const brassMat = new THREE.MeshStandardMaterial({
+      color: 0xd4af37,
+      metalness: 0.88,
+      roughness: 0.25,
+    });
+    const baseMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.20, 0.22, 0.05, 32), brassMat);
+    baseMesh.position.y = 0.025;
+    baseMesh.castShadow = true;
+    lightGroup.add(baseMesh);
 
-    const pot3Soil = new THREE.Mesh(new THREE.CircleGeometry(0.28, 24), soilMat);
-    pot3Soil.rotation.x = -Math.PI / 2;
-    pot3Soil.position.y = 0.51;
-    monGroup.add(pot3Soil);
+    // 2. Vertical architectural slim column (3.4m tall)
+    const columnMat = new THREE.MeshStandardMaterial({
+      color: 0x14151a,
+      metalness: 0.85,
+      roughness: 0.30,
+    });
+    const columnMesh = new THREE.Mesh(new THREE.BoxGeometry(0.08, 3.4, 0.08), columnMat);
+    columnMesh.position.y = 1.72;
+    columnMesh.castShadow = true;
+    lightGroup.add(columnMesh);
 
-    // Monstera fan leaves
-    const monLeafGeom = new THREE.PlaneGeometry(0.34, 0.42, 3, 3);
-    for (let m = 0; m < 9; m++) {
-      const angle = (m * 2 * Math.PI) / 9 + 0.3;
-      const mDist = 0.14 + (m % 2) * 0.06;
-      const mx = Math.cos(angle) * mDist;
-      const mz = Math.sin(angle) * mDist;
-      const stemH = 0.45 + (m % 3) * 0.12;
+    // Brass accent collars at bottom, middle, and top
+    [0.08, 1.72, 3.40].forEach((cy) => {
+      const ring = new THREE.Mesh(new THREE.BoxGeometry(0.095, 0.04, 0.095), brassMat);
+      ring.position.y = cy;
+      lightGroup.add(ring);
+    });
 
-      const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.008, stemH, 8), stemMat);
-      stem.position.set(mx, 0.52 + stemH / 2, mz);
-      stem.rotation.z = Math.cos(angle) * 0.28;
-      stem.rotation.x = Math.sin(angle) * 0.28;
-      monGroup.add(stem);
+    // 3. Dual-Angle Frosted Diffuser Glowing Light Core
+    const glowMat = new THREE.MeshStandardMaterial({
+      color: 0xffffff,
+      emissive: new THREE.Color(0xffeed6),
+      emissiveIntensity: 3.2,
+      roughness: 0.1,
+    });
+    this.ringEmissiveMaterials.push(glowMat);
 
-      const leaf = new THREE.Mesh(monLeafGeom, m % 2 === 0 ? deepLeafMat : freshLeafMat);
-      leaf.position.set(mx * 1.8, 0.52 + stemH + 0.15, mz * 1.8);
-      leaf.rotation.y = angle;
-      leaf.rotation.x = 0.55;
-      monGroup.add(leaf);
-    }
-    this.scene.add(monGroup);
+    // Light blade facing inward towards the boutique room
+    const lightBlade = new THREE.Mesh(new THREE.BoxGeometry(0.045, 3.25, 0.03), glowMat);
+    lightBlade.position.set(-0.025, 1.72, -0.025);
+    lightBlade.rotation.y = Math.PI / 4;
+    lightGroup.add(lightBlade);
+
+    // Soft warm pointlight for realistic wall bounce & ambient luxury glow
+    const cornerPointLight = new THREE.PointLight(0xffeed6, 2.2, 8.0, 1.8);
+    cornerPointLight.position.set(-0.15, 2.0, -0.15);
+    cornerPointLight.userData = { baseIntensity: 2.2 };
+    lightGroup.add(cornerPointLight);
+    this.ringPointLights.push(cornerPointLight);
+
+    // Hitbox for clicking/tapping the corner lamp
+    const hitBox = new THREE.Mesh(
+      new THREE.BoxGeometry(0.40, 3.5, 0.40),
+      new THREE.MeshBasicMaterial({ visible: false })
+    );
+    hitBox.position.y = 1.75;
+    hitBox.userData = { isNightLamp: true }; // Tapping it toggles boutique ambient lighting!
+    lightGroup.add(hitBox);
+    this.interactiveMeshes.push(hitBox);
+
+    this.scene.add(lightGroup);
+  }
+
+  // -----------------------------------------------------------------
+  // Freestanding Luxury Architectural Floor Garment Rack (Stand)
+  // (Different style from wall rail: sculptural black marble & champagne brass floor rack)
+  // -----------------------------------------------------------------
+  private async buildFreestandingGarmentRack() {
+    const rackGroup = new THREE.Group();
+    // Positioned along the right wall in the open space past denim cupboard
+    rackGroup.position.set(6.25, 0, 7.80);
+    rackGroup.rotation.y = -Math.PI / 2; // Facing the central boutique walkway
+
+    const brassMat = new THREE.MeshStandardMaterial({
+      color: 0xd4af37, // Champagne gold / brushed brass
+      metalness: 0.90,
+      roughness: 0.22,
+    });
+
+    const marbleMat = new THREE.MeshStandardMaterial({
+      color: 0x141518, // Polished Nero Marquina black marble
+      metalness: 0.15,
+      roughness: 0.20,
+    });
+
+    const shelfMat = new THREE.MeshStandardMaterial({
+      color: 0x1c1e24,
+      metalness: 0.40,
+      roughness: 0.25,
+      transparent: true,
+      opacity: 0.88,
+    });
+
+    const rackWidth = 1.75;
+    const rackHeight = 1.95;
+    const rackDepth = 0.52;
+
+    // 1. Honed Nero Marquina Black Marble Base Slab
+    const baseGeom = new THREE.BoxGeometry(rackWidth, 0.08, rackDepth);
+    const baseMesh = new THREE.Mesh(baseGeom, marbleMat);
+    baseMesh.position.y = 0.04;
+    baseMesh.castShadow = true;
+    baseMesh.receiveShadow = true;
+    rackGroup.add(baseMesh);
+
+    // 4 Brushed Brass Cylindrical Foot Pads
+    [
+      [-rackWidth / 2 + 0.08, -rackDepth / 2 + 0.06],
+      [-rackWidth / 2 + 0.08, rackDepth / 2 - 0.06],
+      [rackWidth / 2 - 0.08, -rackDepth / 2 + 0.06],
+      [rackWidth / 2 - 0.08, rackDepth / 2 - 0.06],
+    ].forEach(([fx, fz]) => {
+      const foot = new THREE.Mesh(new THREE.CylinderGeometry(0.024, 0.024, 0.015, 16), brassMat);
+      foot.position.set(fx, 0.0075, fz);
+      rackGroup.add(foot);
+    });
+
+    // 2. Elevated Lower Display Shelf for Luxury Footwear
+    const lowerShelfGeom = new THREE.BoxGeometry(rackWidth - 0.16, 0.018, rackDepth - 0.12);
+    const lowerShelf = new THREE.Mesh(lowerShelfGeom, shelfMat);
+    lowerShelf.position.y = 0.22;
+    lowerShelf.castShadow = true;
+    rackGroup.add(lowerShelf);
+
+    // Lower shelf support risers (4 vertical brass pegs)
+    [
+      [-0.70, -0.16],
+      [-0.70, 0.16],
+      [0.70, -0.16],
+      [0.70, 0.16],
+    ].forEach(([rx, rz]) => {
+      const riser = new THREE.Mesh(new THREE.CylinderGeometry(0.010, 0.010, 0.14, 12), brassMat);
+      riser.position.set(rx, 0.15, rz);
+      rackGroup.add(riser);
+    });
+
+    // Curated Luxury Designer Sneaker pair on lower shelf
+    const shoeMat = new THREE.MeshStandardMaterial({ color: 0x222328, roughness: 0.35, metalness: 0.1 });
+    const soleMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.25 });
+    [-0.30, 0.30].forEach((sx) => {
+      const shoeGroup = new THREE.Group();
+      shoeGroup.position.set(sx, 0.23, 0);
+
+      // Left & right shoe
+      [-0.06, 0.06].forEach((ox) => {
+        const sole = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.025, 0.24), soleMat);
+        sole.position.set(ox, 0.0125, 0);
+        sole.castShadow = true;
+        shoeGroup.add(sole);
+
+        const upper = new THREE.Mesh(new THREE.BoxGeometry(0.085, 0.055, 0.22), shoeMat);
+        upper.position.set(ox, 0.045, -0.01);
+        upper.castShadow = true;
+        shoeGroup.add(upper);
+      });
+      rackGroup.add(shoeGroup);
+    });
+
+    // 3. Sculptural Architectural Tubular Brass Frame
+    const legRadius = 0.016;
+    const legH = rackHeight - 0.08;
+    // Left upright column
+    const leftLeg = new THREE.Mesh(new THREE.CylinderGeometry(legRadius, legRadius, legH, 24), brassMat);
+    leftLeg.position.set(-rackWidth / 2 + 0.06, 0.08 + legH / 2, 0);
+    leftLeg.castShadow = true;
+    rackGroup.add(leftLeg);
+
+    // Right upright column
+    const rightLeg = new THREE.Mesh(new THREE.CylinderGeometry(legRadius, legRadius, legH, 24), brassMat);
+    rightLeg.position.set(rackWidth / 2 - 0.06, 0.08 + legH / 2, 0);
+    rightLeg.castShadow = true;
+    rackGroup.add(rightLeg);
+
+    // Top Header Crossbar connecting both uprights
+    const topBarGeom = new THREE.CylinderGeometry(legRadius, legRadius, rackWidth - 0.12, 24);
+    topBarGeom.rotateZ(Math.PI / 2);
+    const topBar = new THREE.Mesh(topBarGeom, brassMat);
+    topBar.position.set(0, rackHeight - 0.01, 0);
+    topBar.castShadow = true;
+    rackGroup.add(topBar);
+
+    // Spherical brass crown finials
+    [-rackWidth / 2 + 0.06, rackWidth / 2 - 0.06].forEach((cx) => {
+      const finial = new THREE.Mesh(new THREE.SphereGeometry(0.028, 20, 20), brassMat);
+      finial.position.set(cx, rackHeight - 0.01, 0);
+      rackGroup.add(finial);
+    });
+
+    // 4. Dedicated Hanging Rail with End Stopper Rings
+    const hangingRailY = rackHeight - 0.14;
+    const hangingRailGeom = new THREE.CylinderGeometry(0.012, 0.012, rackWidth - 0.16, 24);
+    hangingRailGeom.rotateZ(Math.PI / 2);
+    const hangingRail = new THREE.Mesh(hangingRailGeom, brassMat);
+    hangingRail.position.set(0, hangingRailY, 0);
+    hangingRail.castShadow = true;
+    rackGroup.add(hangingRail);
+
+    // 5. Integrated Recessed LED Downlight Channel beneath top bar
+    const ledMat = new THREE.MeshStandardMaterial({
+      color: 0xffffff,
+      emissive: new THREE.Color(0xfff5e6),
+      emissiveIntensity: 3.5,
+      roughness: 0.1,
+    });
+    this.ringEmissiveMaterials.push(ledMat);
+    const ledStrip = new THREE.Mesh(new THREE.BoxGeometry(rackWidth - 0.20, 0.012, 0.025), ledMat);
+    ledStrip.position.set(0, rackHeight - 0.03, 0);
+    rackGroup.add(ledStrip);
+
+    // 6. Curated Clothes Hanging on the Stand (Different style hanging capsule)
+    const textureLoader = new THREE.TextureLoader();
+    const STAND_ITEMS = [
+      {
+        id: 10,
+        title: "DISTRESSED VINTAGE DENIM JACKET",
+        desc: "Light Indigo Wash • 14oz Japanese Rigid Denim",
+        price: 18999,
+        frontAspect: 0.81,
+        frontTex: './hanging_cloth/item_10_front.png',
+        posX: -0.48,
+      },
+      {
+        id: 1,
+        title: "TAILORED WOOL COAT",
+        desc: "Midnight Navy • Tailored Italian Wool",
+        price: 24999,
+        frontAspect: 0.63,
+        frontTex: './hanging_cloth/item_1_front.png',
+        posX: -0.16,
+      },
+      {
+        id: 3,
+        title: "SAND FLEECE SWEATSHIRT",
+        desc: "Raw Natural Cotton • Minimalist Chest Logo",
+        price: 14499,
+        frontAspect: 0.63,
+        frontTex: './hanging_cloth/item_3_front.png',
+        posX: 0.16,
+      },
+      {
+        id: 9,
+        title: "EMERALD HEAVY HOODIE",
+        desc: "Botanical Pigment Wash • Heavy French Terry",
+        price: 16499,
+        frontAspect: 0.75,
+        frontTex: './hanging_cloth/item_9_front.png',
+        posX: 0.48,
+      },
+    ];
+
+    const clothHeight = 0.95;
+    STAND_ITEMS.forEach((si, idx) => {
+      const gGroup = new THREE.Group();
+      gGroup.position.set(si.posX, hangingRailY, 0);
+
+      // Wooden wishbone hanger neck & hook
+      const hangerHook = new THREE.Mesh(new THREE.CylinderGeometry(0.004, 0.004, 0.09, 12), brassMat);
+      hangerHook.position.set(0, 0.045, 0);
+      gGroup.add(hangerHook);
+
+      const hangerBody = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.012, 0.010, 0.44, 16),
+        new THREE.MeshStandardMaterial({ color: 0x4a2e18, roughness: 0.45 })
+      );
+      hangerBody.rotation.z = Math.PI / 2;
+      hangerBody.position.set(0, 0.01, 0);
+      gGroup.add(hangerBody);
+
+      // Garment Front Mesh
+      const frontTex = textureLoader.load(si.frontTex);
+      frontTex.colorSpace = THREE.SRGBColorSpace;
+      const frontWidth = clothHeight * si.frontAspect;
+      const frontMat = new THREE.MeshBasicMaterial({
+        map: frontTex,
+        transparent: true,
+        side: THREE.DoubleSide,
+        depthWrite: false,
+        alphaTest: 0.05,
+      });
+      const clothMesh = new THREE.Mesh(new THREE.PlaneGeometry(frontWidth, clothHeight), frontMat);
+      clothMesh.position.set(0, -clothHeight / 2 - 0.02, 0);
+      gGroup.add(clothMesh);
+
+      // Raycast hitbox
+      const hitGeom = new THREE.BoxGeometry(0.35, clothHeight + 0.1, 0.25);
+      const hitMat = new THREE.MeshBasicMaterial({ visible: false });
+      const hitMesh = new THREE.Mesh(hitGeom, hitMat);
+      hitMesh.position.set(0, -clothHeight / 2, 0);
+
+      const standProduct: Product = {
+        id: `stand-item-${si.id}`,
+        name: si.title,
+        subtitle: si.desc,
+        price: si.price,
+        category: 'Clothing',
+        sectionName: 'CAPSULE STAND',
+        garmentType: 'colorblock-hoodie',
+        description: si.desc,
+        fabricDetails: {
+          composition: '100% Japanese Selvedge / French Terry Cotton',
+          weight: 'Heavyweight Luxury Gauge',
+          weave: 'Artisanal Loom Weave',
+          treatment: 'Signature Wash',
+          care: 'Dry Clean Recommended',
+        },
+        colors: [{ name: 'Default', hex: '#222222' }],
+        sizes: ['S', 'M', 'L', 'XL'],
+        sku: `STD-0${idx + 1}`,
+        features: ['Boutique Capsule Edition', 'Hand-finished detailing', 'Sculptural display fit'],
+      };
+
+      hitMesh.userData = { isHitBox: true, product: standProduct };
+      gGroup.add(hitMesh);
+      this.interactiveMeshes.push(hitMesh);
+
+      rackGroup.add(gGroup);
+    });
+
+    this.scene.add(rackGroup);
   }
 
   // -----------------------------------------------------------------
